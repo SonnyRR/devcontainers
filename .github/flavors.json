@@ -1,0 +1,28 @@
+[
+  {
+    "name": "OpenSUSE Tumbleweed",
+    "flavor": "opensuse-tumbleweed",
+    "image_name": "opensuse-tumbleweed",
+    "dockerfile_path": "./OpenSUSE/Tumbleweed/Dockerfile",
+    "context": ".",
+    "versioning": "calver"
+  },
+  {
+    "name": "OpenSUSE Leap",
+    "flavor": "opensuse-leap",
+    "image_name": "opensuse-leap",
+    "dockerfile_path": "./OpenSUSE/Leap/Dockerfile",
+    "context": ".",
+    "versioning": "release",
+    "base_version": "16.0"
+  },
+  {
+    "name": "Ubuntu LTS",
+    "flavor": "ubuntu-lts",
+    "image_name": "ubuntu-lts",
+    "dockerfile_path": "./Ubuntu/LTS/Dockerfile",
+    "context": ".",
+    "versioning": "release",
+    "base_version": "26.04"
+  }
+]

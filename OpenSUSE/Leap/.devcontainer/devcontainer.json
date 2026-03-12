@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "opensuse-leap",
+  "shutdownAction": "stopContainer",
+  "image": "docker.io/<your-dockerhub-username>/opensuse-leap:latest",
+  "remoteUser": "developer",
+  "mounts": [
+    "source=${localEnv:HOME}/.gitconfig,target=/home/developer/.gitconfig,type=bind,readonly",
+    "source=dev-leap-fish-history-${devcontainerId},target=/home/developer/.local/share/fish,type=volume",
+    "source=dev-leap-xdg-cache-${devcontainerId},target=/home/developer/.cache,type=volume"
+  ],
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "fish",
+        "terminal.integrated.profiles.linux": {
+          "fish": {
+            "path": "/usr/bin/fish"
+          }
+        }
+      },
+      "extensions": [
+        "editorconfig.editorconfig",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-playwright.playwright",
+        "angular.ng-template",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  }
+}

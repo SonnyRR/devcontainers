@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: "/OpenSUSE/Tumbleweed"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+      - devbox
+  - package-ecosystem: docker
+    directory: "/OpenSUSE/Leap"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+      - devbox
+  - package-ecosystem: docker
+    directory: "/Ubuntu/LTS"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+      - devbox

@@ -1,0 +1,253 @@
+name: Build & Publish Devcontainer Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: Select image flavor
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - opensuse-tumbleweed
+          - opensuse-leap
+          - ubuntu-lts
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }} @ ${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare build matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate flavor definitions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # flavors.json is data that flows into shell, git refs, the registry and
+          # an external action. Reject anything outside a strict allowlist here so a
+          # crafted or malformed entry can never inject commands downstream. Bash
+          # regex (=~) matches the whole string and never spans newlines, so embedded
+          # newlines / metacharacters are rejected rather than smuggled through.
+          if ! jq empty .github/flavors.json 2>/dev/null; then
+            echo "::error::.github/flavors.json is not valid JSON" >&2
+            exit 1
+          fi
+
+          errors=0
+          count="$(jq 'length' .github/flavors.json)"
+          for i in $(seq 0 "$((count - 1))"); do
+            flavor="$(jq -r ".[$i].flavor // empty" .github/flavors.json)"
+            image_name="$(jq -r ".[$i].image_name // empty" .github/flavors.json)"
+            dockerfile_path="$(jq -r ".[$i].dockerfile_path // empty" .github/flavors.json)"
+            context="$(jq -r ".[$i].context // empty" .github/flavors.json)"
+            versioning="$(jq -r ".[$i].versioning // empty" .github/flavors.json)"
+            base_version="$(jq -r ".[$i].base_version // empty" .github/flavors.json)"
+
+            check() { # field value regex
+              local re="$3"
+              if [[ ! "$2" =~ $re ]]; then
+                echo "::error::flavors[$i].$1 value '$2' does not match /$re/" >&2
+                errors=1
+              fi
+            }
+
+            check flavor          "$flavor"          '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+            check image_name      "$image_name"      '^[a-z0-9]([a-z0-9._/-]*[a-z0-9])?$'
+            check dockerfile_path "$dockerfile_path" '^\./[A-Za-z0-9._/-]+$'
+            check context         "$context"         '^(\.|\./[A-Za-z0-9._/-]+)$'
+            check versioning      "$versioning"      '^(calver|release)$'
+
+            # base_version: required (numeric) for release, must be absent for calver.
+            if [[ "$versioning" == "release" ]]; then
+              check base_version "$base_version" '^[0-9]+(\.[0-9]+)*$'
+            elif [[ -n "$base_version" ]]; then
+              echo "::error::flavors[$i].base_version must be empty when versioning=calver" >&2
+              errors=1
+            fi
+
+            # No path traversal in path-like fields (the charclasses above permit dots).
+            case "${dockerfile_path}|${context}" in
+              *..*) echo "::error::flavors[$i]: '..' is not allowed in dockerfile_path/context" >&2; errors=1 ;;
+            esac
+          done
+
+          if [[ "$errors" -ne 0 ]]; then
+            echo "Flavor validation failed; refusing to build." >&2
+            exit 1
+          fi
+          echo "All flavor definitions are valid."
+
+      - name: Resolve flavors to build
+        id: set-matrix
+        shell: bash
+        env:
+          FLAVOR_INPUT: ${{ inputs.flavor }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$FLAVOR_INPUT" == "all" ]]; then
+            flavors="$(jq -c '[.[] | {flavor: .flavor}]' .github/flavors.json)"
+          else
+            flavors="$(jq -c --arg f "$FLAVOR_INPUT" '[.[] | select(.flavor == $f) | {flavor: .flavor}]' .github/flavors.json)"
+          fi
+
+          echo "matrix=$(echo "$flavors" | jq -c '{include: .}')" >> "$GITHUB_OUTPUT"
+
+  publish-devbox-image:
+    name: Build & publish DevBox image
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    strategy:
+      # Build each flavor independently — one flavor's failure must NOT cancel the
+      # others. A factory publishes independent images; without this, e.g. an
+      # opensuse-leap failure aborts the remaining flavor builds mid-run.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve flavor metadata
+        id: meta
+        shell: bash
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          set -euo pipefail
+          image_name="$(jq -r --arg f "$FLAVOR" '.[] | select(.flavor == $f) | .image_name' .github/flavors.json)"
+          dockerfile_path="$(jq -r --arg f "$FLAVOR" '.[] | select(.flavor == $f) | .dockerfile_path' .github/flavors.json)"
+          context="$(jq -r --arg f "$FLAVOR" '.[] | select(.flavor == $f) | .context' .github/flavors.json)"
+          versioning="$(jq -r --arg f "$FLAVOR" '.[] | select(.flavor == $f) | .versioning' .github/flavors.json)"
+          base_version="$(jq -r --arg f "$FLAVOR" '.[] | select(.flavor == $f) | .base_version // ""' .github/flavors.json)"
+          {
+            echo "image_name=${image_name}"
+            echo "dockerfile_path=${dockerfile_path}"
+            echo "context=${context}"
+            echo "versioning=${versioning}"
+            echo "base_version=${base_version}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Compute version and image tags
+        id: version
+        shell: bash
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+          VERSIONING: ${{ steps.meta.outputs.versioning }}
+          BASE_VERSION: ${{ steps.meta.outputs.base_version }}
+        run: |
+          set -euo pipefail
+
+          case "$VERSIONING" in
+            calver)
+              # Rolling base (e.g. Tumbleweed): dated, immutable snapshots.
+              day="$(date -u +%Y.%m.%d)"
+              latest_for_day="$({ git tag -l "${FLAVOR}/v${day}.*" || true; } | sed -E 's|.*/v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.([0-9]+)$|\1|' | sort -n | tail -n1)"
+              if [[ -z "$latest_for_day" ]]; then
+                counter=1
+              else
+                counter=$((latest_for_day + 1))
+              fi
+              version="${day}.${counter}"
+              release_tags="${version},latest"
+              ;;
+            release)
+              # Versioned base (e.g. Leap/Ubuntu): fixed tag, overwritten each build.
+              version="${BASE_VERSION}"
+              release_tags="${BASE_VERSION},latest"
+              ;;
+            *)
+              echo "Unknown versioning strategy: '${VERSIONING}'" >&2
+              exit 1
+              ;;
+          esac
+
+          git_tag="${FLAVOR}/v${version}"
+          short_sha="$(git rev-parse --short HEAD)"
+          raw_branch="${GITHUB_REF_NAME}"
+          safe_branch="$(printf '%s' "$raw_branch" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9_.-]+#-#g; s#^[.-]+##; s#-+#-#g; s#\.+#.#g; s#[.-]+$##')"
+          if [[ -z "$safe_branch" ]]; then
+            safe_branch="branch"
+          fi
+
+          # An immutable, commit-pinned tag published on every build so an image
+          # can be pinned to an exact commit regardless of branch/versioning.
+          # The full 40-char commit SHA is used verbatim as the tag.
+          sha_tag="${GITHUB_SHA}"
+
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            img_tags="${release_tags},${sha_tag}"
+          else
+            img_tags="beta-${version}-${short_sha},beta-${safe_branch}-${short_sha},beta-${safe_branch}-latest,${sha_tag}"
+          fi
+
+          {
+            echo "version=${version}"
+            echo "git_tag=${git_tag}"
+            echo "img_tags=${img_tags}"
+            echo "safe_branch=${safe_branch}"
+            echo "short_sha=${short_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and publish OCI-compatible image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ${{ steps.meta.outputs.context }}
+          file: ${{ steps.meta.outputs.dockerfile_path }}
+          push: false # Temporary disabled
+          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.meta.outputs.image_name }}:${{ steps.version.outputs.img_tags }}
+
+      - name: Tag git commit with release version
+        if: ${{ github.ref == 'refs/heads/main' }}
+        shell: bash
+        env:
+          GIT_TAG: ${{ steps.version.outputs.git_tag }}
+          VERSIONING: ${{ steps.meta.outputs.versioning }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse -q --verify "refs/tags/${GIT_TAG}" >/dev/null; then
+            if [[ "$VERSIONING" == "calver" ]]; then
+              # Dated snapshots are immutable; never move an existing calver tag.
+              echo "Tag '${GIT_TAG}' already exists (calver is immutable). Skipping."
+              exit 0
+            fi
+            # Fixed release versions (e.g. Leap/Ubuntu) track the latest build:
+            # move the existing tag to the current commit.
+            echo "Tag '${GIT_TAG}' already exists; moving it to ${GITHUB_SHA}."
+          fi
+
+          # -f creates the tag, or moves it if it already exists (release flavors).
+          git tag -f -a "$GIT_TAG" -m "Release ${GIT_TAG}"
+          git push -f origin "refs/tags/${GIT_TAG}:refs/tags/${GIT_TAG}"

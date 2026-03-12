@@ -1,0 +1,23 @@
+# Normalize text files and enforce LF in repo
+* text=auto eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Certificates (PEM text)
+*.crt text eol=lf
+
+# Unix shell scripts and profiles
+*.sh text eol=lf
+*.bash text eol=lf
+.bashrc text eol=lf
