@@ -5,7 +5,7 @@
 # Author      : Vasil Kotsev
 # Updated     : 2026-02-12
 # ---------------------------------------------------------------------------------------
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 ARG USERNAME=developer
 ARG DEBIAN_FRONTEND=noninteractive
@@ -34,11 +34,11 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
       > /etc/apt/sources.list.d/github-cli.list
 
 ## Install base developer toolchains.
-## NOTE: On Ubuntu 24.04 the .NET SDK ships in the distro's own apt feed
+## NOTE: On Ubuntu 26.04 the .NET SDK ships in the distro's own apt feed
 ## (Microsoft no longer publishes .NET to packages.microsoft.com for Ubuntu),
 ## so dotnet-sdk-10.0 is installed straight from apt here.
 ## The lib*/font packages are the headless-browser (Playwright) runtime deps;
-## the *t64 suffixes are the Ubuntu 24.04+ time_t-transition package names.
+## the *t64 suffixes are the Ubuntu 26.04+ time_t-transition package names.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       sudo \
       gcc \

@@ -140,7 +140,7 @@ for the full breakdown.
 | Path                  | `Ubuntu/LTS/`                                |
 | Devcontainer template | `Ubuntu/LTS/.devcontainer/devcontainer.json` |
 
-A Debian-family variant based on `ubuntu:24.04`, providing the same corporate trust
+A Debian-family variant based on `ubuntu:26.04`, providing the same corporate trust
 setup, toolchains, and developer defaults (`developer` user, `Fish` shell) as the
 images above, and a matching ready-to-use `devcontainer.json` template. Key distribution
 differences: `.NET` is installed from Ubuntu's own apt feed (Microsoft no longer
@@ -162,11 +162,11 @@ tags built from `main`:
 | ------------------- | --------------------- | ------------------------------------------ |
 | OpenSUSE Tumbleweed | `opensuse-tumbleweed` | `latest`, `YYYY.MM.DD.N` (dated snapshots) |
 | OpenSUSE Leap       | `opensuse-leap`       | `latest`, `16.0`                           |
-| Ubuntu LTS          | `ubuntu`              | `latest`, `24.04`                          |
+| Ubuntu LTS          | `ubuntu`              | `latest`, `26.04`                          |
 
 - **Tumbleweed** uses date-based (`CalVer`) versioning: every `main` build produces a new,
   immutable `YYYY.MM.DD.N` snapshot (e.g. `2026.02.12.1`) and moves `latest` to it.
-- **Leap** and **Ubuntu** track a fixed version tag (`16.0` / `24.04`) that is overwritten
+- **Leap** and **Ubuntu** track a fixed version tag (`16.0` / `26.04`) that is overwritten
   with the newest content on each `main` build, alongside `latest`.
 - Every build (on any branch) also publishes an immutable tag equal to the full 40-char
   commit SHA, letting you pin an image to the exact commit it was built from.
@@ -223,7 +223,7 @@ Copy the template for the flavor you want into your repository at
 | Ubuntu LTS          | `Ubuntu/LTS/.devcontainer/devcontainer.json`          | `docker.io/<your-dockerhub-username>/ubuntu-lts:latest`          |
 
 > Tip: the templates reference the `:latest` tag. To pin to a specific version, change the
-> `image` tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:24.04`), or pin to an exact commit
+> `image` tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:26.04`), or pin to an exact commit
 > with the full-SHA tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:<40-char-commit-sha>`).
 
 ### 5️⃣ Open the project in the container

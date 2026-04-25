@@ -1,6 +1,6 @@
 # 🐧 Ubuntu LTS Devcontainer Image
 
-This directory contains the `Dockerfile` for a custom general-purpose devcontainer, based on `ubuntu:24.04`, alongside a template `devcontainer.json` for use in actual codebases.
+This directory contains the `Dockerfile` for a custom general-purpose devcontainer, based on `ubuntu:26.04`, alongside a template `devcontainer.json` for use in actual codebases.
 
 ## 📄 Devcontainer Template (with Sensible Defaults)
 
@@ -9,7 +9,7 @@ A ready-to-use `devcontainer.json` example ships at
 your project at `.devcontainer/devcontainer.json` to get a fully wired-up environment
 out of the box. The template configures:
 
-- **Image:** `docker.io/<your-dockerhub-username>/ubuntu-lts:latest` (pin to `24.04` for the
+- **Image:** `docker.io/<your-dockerhub-username>/ubuntu-lts:latest` (pin to `26.04` for the
   fixed-version tag)
 - **User:** runs as the non-root `developer` account
 - **Shell:** `Fish` set as the default VS Code integrated terminal profile
@@ -57,7 +57,7 @@ the core toolchain at container-create time.
 
 Why baked-in beats Features for the base image:
 
-- **Reproducibility.** A tagged image (e.g. `ubuntu:24.04`) is byte-identical for
+- **Reproducibility.** A tagged image (e.g. `ubuntu:26.04`) is byte-identical for
   every developer who pulls it.
 - **Fast container startup.** No multi-minute per-create install step - `Reopen in
 Container` is essentially "pull and go".
@@ -109,7 +109,7 @@ What is provisioned at build time (high-level):
 - `AI` developer tooling:
   - `Anthropic Claude Code CLI` (global `npm` install)
 
-Note: the base image `ubuntu:24.04` may include additional preinstalled OS packages not listed above.
+Note: the base image `ubuntu:26.04` may include additional preinstalled OS packages not listed above.
 
 ## 👤 User & Shell Defaults
 
@@ -143,11 +143,11 @@ Published to `docker.io/<your-dockerhub-username>/ubuntu-lts`. This flavor track
 version:
 
 - `latest` - the most recent build from `main`
-- `24.04` - the pinned base version; overwritten on each `main` build with the newest content
+- `26.04` - the pinned base version; overwritten on each `main` build with the newest content
 
 Builds from non-`main` branches publish pre-release tags instead:
 
-- `beta-24.04-<short-sha>`
+- `beta-26.04-<short-sha>`
 - `beta-<branch>-<short-sha>`
 - `beta-<branch>-latest`
 

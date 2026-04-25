@@ -1,7 +1,7 @@
 if status is-interactive
 
     function fish_greeting
-        echo (set_color --bold blue)Vasil Kotsev\'s (set_color --bold E95420)Ubuntu 24.04(set_color normal) Devcontainer
+        echo (set_color --bold blue)Vasil Kotsev\'s (set_color --bold E95420)Ubuntu 26.04(set_color normal) Devcontainer
 
         set -l passwd_status (passwd -S (whoami) 2>/dev/null)
         if string match -rq '^[^[:space:]]+[[:space:]]+(NP|L|LK)[[:space:]]' -- "$passwd_status"
