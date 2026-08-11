@@ -67,7 +67,7 @@ RUN zypper -n in --no-recommends \
       gnome-keyring \
       ncdu \
       gpg2 \
-      pinentry-qt6 \
+      pinentry \
       fish \
       tmux \
       fzf \
