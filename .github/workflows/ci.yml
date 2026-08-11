@@ -194,7 +194,7 @@ jobs:
           # The full 40-char commit SHA is used verbatim as the tag.
           sha_tag="${GITHUB_SHA}"
 
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+          if [[ "${GITHUB_REF}" == "refs/heads/main" || "${GITHUB_REF}" == "refs/heads/master" ]]; then
             img_tags="${release_tags},${sha_tag}"
           else
             img_tags="beta-${version}-${short_sha},beta-${safe_branch}-${short_sha},beta-${safe_branch}-latest,${sha_tag}"
@@ -226,7 +226,7 @@ jobs:
           tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.meta.outputs.image_name }}:${{ steps.version.outputs.img_tags }}
 
       - name: Tag git commit with release version
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
         shell: bash
         env:
           GIT_TAG: ${{ steps.version.outputs.git_tag }}
