@@ -53,7 +53,7 @@ RUN curl -fsSL https://yazi-rs.github.io/builds/yazi-keyring.gpg \
 ## the *t64 suffixes are the Ubuntu 26.04+ time_t-transition package names.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       sudo \
-      gcc \
+      build-essential \
       libnss3 \
       libnspr4 \
       libatk1.0-0t64 \

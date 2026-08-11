@@ -39,7 +39,7 @@ RUN zypper -n addrepo https://cli.github.com/packages/rpm/gh-cli.repo && \
 RUN zypper -n in --no-recommends \
       sudo \
       icu \
-      gcc \
+      patterns-devel-base-devel_basis \
       glibc \
       libX11-6 \
       libX11-xcb1 \
