@@ -33,6 +33,18 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
       > /etc/apt/sources.list.d/github-cli.list
 
+## Set up the official Yazi apt repository for the `yazi` package.
+## NOTE: Yazi is not in the official Ubuntu repos. This uses the project's
+## maintained, GPG-signed keyring + apt repo (the official Debian/Ubuntu
+## method), keeping yazi on the same auditable "signed repo baked at build
+## time" footing as gh. The repo ships latest stable amd64/arm64 builds.
+## See: https://yazi-rs.github.io/docs/installation/#apt
+RUN curl -fsSL https://yazi-rs.github.io/builds/yazi-keyring.gpg \
+      -o /etc/apt/keyrings/yazi-keyring.gpg && \
+    chmod go+r /etc/apt/keyrings/yazi-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/yazi-keyring.gpg] https://yazi-rs.github.io/builds stable main" \
+      > /etc/apt/sources.list.d/yazi.list
+
 ## Install base developer toolchains.
 ## NOTE: On Ubuntu 26.04 the .NET SDK ships in the distro's own apt feed
 ## (Microsoft no longer publishes .NET to packages.microsoft.com for Ubuntu),
@@ -73,6 +85,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ripgrep \
       jq \
       fd-find \
+      7zip \
+      file \
+      ffmpeg \
+      poppler-utils \
+      zoxide \
+      yazi \
       lazygit \
       git \
       unzip \

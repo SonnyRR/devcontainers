@@ -74,6 +74,13 @@ RUN zypper -n in --no-recommends \
       jq \
       fd \
       fd-fish-completion \
+      file \
+      7zip \
+      ffmpeg \
+      poppler-tools \
+      zoxide \
+      yazi \
+      yazi-fish-completion \
       git \
       lazygit \
       neovim \
