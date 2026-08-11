@@ -75,7 +75,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       fd-find \
       lazygit \
       git \
-      neovim \
       unzip \
       tar \
       gh \
@@ -109,6 +108,25 @@ RUN set -eux; \
     curl -fsSL https://fnm.vercel.app/install -o /tmp/fnm-install.sh; \
     bash /tmp/fnm-install.sh --install-dir /usr/local/bin --skip-shell; \
     rm -f /tmp/sops-release.json /tmp/fnm-install.sh
+
+## Install Neovim (latest stable) from the official GitHub release tarball.
+## NOTE: Ubuntu's apt feed ships an outdated Neovim, so we pull the latest
+## stable release directly from GitHub, mirroring the sops/fnm approach above.
+## See: https://github.com/neovim/neovim/releases/latest
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) nvim_arch="x86_64" ;; \
+      arm64) nvim_arch="arm64" ;; \
+      *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest -o /tmp/nvim-release.json; \
+    nvim_ver="$(grep -Po '"tag_name": *"v\K[^"]*' /tmp/nvim-release.json)"; \
+    curl -fsSL "https://github.com/neovim/neovim/releases/download/v${nvim_ver}/nvim-linux-${nvim_arch}.tar.gz" \
+      -o /tmp/nvim.tar.gz; \
+    tar -xzf /tmp/nvim.tar.gz -C /opt; \
+    ln -s "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim; \
+    rm -f /tmp/nvim-release.json /tmp/nvim.tar.gz
 
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
