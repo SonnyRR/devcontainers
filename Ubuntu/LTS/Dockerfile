@@ -87,6 +87,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       fd-find \
       7zip \
       file \
+      gawk \
       ffmpeg \
       poppler-utils \
       zoxide \

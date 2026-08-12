@@ -97,6 +97,7 @@ What is provisioned at build time (high-level):
   - `ncdu` (disk usage analyzer)
 - Developer `CLI` and editors:
   - `jq`
+  - `awk` (GNU `gawk`)
   - `Neovim` (latest stable, GitHub release)
   - `SQLite`
   - `tree-sitter-cli` (global `npm` install)

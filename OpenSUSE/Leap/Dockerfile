@@ -78,6 +78,7 @@ RUN zypper -n in --no-recommends \
       fd \
       fd-fish-completion \
       file \
+      gawk \
       7zip \
       ffmpeg \
       poppler-tools \
