@@ -84,36 +84,58 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `Mozilla CA bundle`
   - `Curl`
   - `OpenSSL`
+  - `GPG` (signing & key management)
 - System and privilege tools:
   - `Sudo`
-  - `GCC`
+  - Development toolchain (`patterns-devel-base-devel_basis`)
   - `glibc`
   - `ICU`
 - Source control and remote access:
   - `Git`
   - `GitHub CLI` (`gh`)
   - `OpenSSH`
+  - `Lazygit` (terminal UI for `Git`)
 - Terminal and shell experience:
   - `Fish` shell (w/shell integration)
   - `FZF` (w/shell completion)
   - `Ripgrep` (w/shell completion)
+  - `fd` (w/shell completion)
+  - `zoxide` (smarter `cd`)
+  - `tmux` (terminal multiplexer)
+  - `ncdu` (disk usage analyzer)
 - Developer `CLI` and editors:
   - `jq`
-  - `Lazygit`
   - `Neovim`
   - `SQLite`
   - `tree-sitter-cli` (global `npm` install)
+- File management & archives:
+  - `Yazi` (terminal file manager)
+  - `7-Zip`
+  - `file`
+- Media & document tools:
+  - `FFmpeg`
+  - `Poppler` PDF tools (`poppler-tools`)
 - Language and platform toolchains:
   - `Python 3.14`
   - `.NET SDK 10.0`
   - `Node.js LTS` (via `FNM`)
+  - `pnpm` (via `Corepack`)
+  - `LuaJIT`
+  - .NET global tools:
+    - `dotnet-ef`
+    - `dotnet-outdated-tool`
+    - `gitversion.tool`
+    - `nuke.globaltool`
+    - `ilspycmd`
+    - `easydotnet`
 - Cloud and secrets tooling:
   - `Azure CLI`
   - `SOPS`
 - Browser/runtime dependencies:
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)
-- `AI` developer tooling:
+- AI developer tooling:
+  - `OpenCode` (global `npm` install)
   - `Anthropic Claude Code CLI` (global `npm` install)
 
 Note: the base image `opensuse/tumbleweed:latest` may include additional preinstalled OS packages not listed above.

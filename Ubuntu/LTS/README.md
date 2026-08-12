@@ -73,40 +73,61 @@ Container` is essentially "pull and go".
 
 What is provisioned at build time (high-level):
 
-- Microsoft package repo: configured for `Ubuntu` to install `.NET` packages
+- `.NET` is installed from Ubuntu's own `apt` feed (Microsoft's package repo is not used)
 - Certificate and `TLS` tooling:
   - `CA certificates`
   - `Curl`
   - `OpenSSL`
+  - `GPG` (signing & key management)
 - System and privilege tools:
   - `Sudo`
-  - `GCC`
+  - `Build Essential` (GCC/G++/Make toolchain)
 - Source control and remote access:
   - `Git`
   - `GitHub CLI` (`gh`)
   - `OpenSSH` (client)
+  - `Lazygit` (terminal UI for `Git`)
 - Terminal and shell experience:
   - `Fish` shell (w/shell integration)
   - `fzf`
   - `ripgrep`
   - `fd`
+  - `zoxide` (smarter `cd`)
+  - `tmux` (terminal multiplexer)
+  - `ncdu` (disk usage analyzer)
 - Developer `CLI` and editors:
   - `jq`
-  - `Lazygit` (release binary)
-  - `Neovim`
+  - `Neovim` (latest stable, GitHub release)
   - `SQLite`
   - `tree-sitter-cli` (global `npm` install)
+- File management & archives:
+  - `Yazi` (terminal file manager)
+  - `7-Zip`
+  - `file`
+- Media & document tools:
+  - `FFmpeg`
+  - `Poppler` PDF tools (`poppler-utils`)
 - Language and platform toolchains:
   - `Python 3`
   - `.NET SDK 10.0`
   - `Node.js LTS` (via `FNM`)
+  - `pnpm` (via `Corepack`)
+  - `LuaJIT`
+  - .NET global tools:
+    - `dotnet-ef`
+    - `dotnet-outdated-tool`
+    - `gitversion.tool`
+    - `nuke.globaltool`
+    - `ilspycmd`
+    - `easydotnet`
 - Cloud and secrets tooling:
   - `Azure CLI`
   - `SOPS` (release binary)
 - Browser/runtime dependencies:
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)
-- `AI` developer tooling:
+- AI developer tooling:
+  - `OpenCode` (global `npm` install)
   - `Anthropic Claude Code CLI` (global `npm` install)
 
 Note: the base image `ubuntu:26.04` may include additional preinstalled OS packages not listed above.
