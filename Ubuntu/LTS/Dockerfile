@@ -113,6 +113,11 @@ RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb -o /tmp/install-azure-cli.sh &&
 
 ## Install developer CLIs that Ubuntu does not package (fnm, sops),
 ## pulling the latest release binaries for the build host's architecture.
+## NOTE: The latest version is resolved from the GitHub release page's
+## 302 redirect (https://github.com/<owner>/<repo>/releases/latest) rather
+## than the GitHub REST API, because unauthenticated api.github.com calls
+## are rate-limited (60/hr per IP) and CI runners share IPs, which made the
+## build fail intermittently with "API rate limit exceeded".
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
@@ -120,17 +125,17 @@ RUN set -eux; \
       arm64) sops_arch="linux.arm64" ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL https://api.github.com/repos/getsops/sops/releases/latest -o /tmp/sops-release.json; \
-    sops_ver="$(grep -Po '"tag_name": *"v\K[^"]*' /tmp/sops-release.json)"; \
+    sops_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/getsops/sops/releases/latest | sed -E 's#.*/tag/v([^/]+)$#\1#')"; \
     curl -fsSL "https://github.com/getsops/sops/releases/download/v${sops_ver}/sops-v${sops_ver}.${sops_arch}" -o /usr/local/bin/sops; \
     chmod +x /usr/local/bin/sops; \
     curl -fsSL https://fnm.vercel.app/install -o /tmp/fnm-install.sh; \
     bash /tmp/fnm-install.sh --install-dir /usr/local/bin --skip-shell; \
-    rm -f /tmp/sops-release.json /tmp/fnm-install.sh
+    rm -f /tmp/fnm-install.sh
 
 ## Install Neovim (latest stable) from the official GitHub release tarball.
 ## NOTE: Ubuntu's apt feed ships an outdated Neovim, so we pull the latest
-## stable release directly from GitHub, mirroring the sops/fnm approach above.
+## stable release directly from GitHub, mirroring the sops/fnm approach above
+## (version resolved from the release-page redirect, not the rate-limited API).
 ## See: https://github.com/neovim/neovim/releases/latest
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
@@ -139,13 +144,12 @@ RUN set -eux; \
       arm64) nvim_arch="arm64" ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest -o /tmp/nvim-release.json; \
-    nvim_ver="$(grep -Po '"tag_name": *"v\K[^"]*' /tmp/nvim-release.json)"; \
+    nvim_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/neovim/neovim/releases/latest | sed -E 's#.*/tag/v([^/]+)$#\1#')"; \
     curl -fsSL "https://github.com/neovim/neovim/releases/download/v${nvim_ver}/nvim-linux-${nvim_arch}.tar.gz" \
       -o /tmp/nvim.tar.gz; \
     tar -xzf /tmp/nvim.tar.gz -C /opt; \
     ln -s "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim; \
-    rm -f /tmp/nvim-release.json /tmp/nvim.tar.gz
+    rm -f /tmp/nvim.tar.gz
 
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
