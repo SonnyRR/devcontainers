@@ -125,7 +125,7 @@ RUN set -eux; \
       arm64) sops_arch="linux.arm64" ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    sops_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/getsops/sops/releases/latest | sed -E 's#.*/tag/v([^/]+)$#\1#')"; \
+    sops_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/getsops/sops/releases/latest | sed -E 's:.*/tag/v([^/]+)$:\1:')"; \
     curl -fsSL "https://github.com/getsops/sops/releases/download/v${sops_ver}/sops-v${sops_ver}.${sops_arch}" -o /usr/local/bin/sops; \
     chmod +x /usr/local/bin/sops; \
     curl -fsSL https://fnm.vercel.app/install -o /tmp/fnm-install.sh; \
@@ -144,7 +144,7 @@ RUN set -eux; \
       arm64) nvim_arch="arm64" ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    nvim_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/neovim/neovim/releases/latest | sed -E 's#.*/tag/v([^/]+)$#\1#')"; \
+    nvim_ver="$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/neovim/neovim/releases/latest | sed -E 's:.*/tag/v([^/]+)$:\1:')"; \
     curl -fsSL "https://github.com/neovim/neovim/releases/download/v${nvim_ver}/nvim-linux-${nvim_arch}.tar.gz" \
       -o /tmp/nvim.tar.gz; \
     tar -xzf /tmp/nvim.tar.gz -C /opt; \
