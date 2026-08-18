@@ -244,7 +244,8 @@ Copy the template for the flavor you want into your repository at
 | OpenSUSE Leap       | `OpenSUSE/Leap/.devcontainer/devcontainer.json`       | `docker.io/<your-dockerhub-username>/opensuse-leap:latest`       |
 | Ubuntu LTS          | `Ubuntu/LTS/.devcontainer/devcontainer.json`          | `docker.io/<your-dockerhub-username>/ubuntu-lts:latest`          |
 
-> Tip: the templates reference the `:latest` tag. To pin to a specific version, change the
+> [!TIP]
+> The templates reference the `:latest` tag. To pin to a specific version, change the
 > `image` tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:26.04`), or pin to an exact commit
 > with the full-SHA tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:<40-char-commit-sha>`).
 
