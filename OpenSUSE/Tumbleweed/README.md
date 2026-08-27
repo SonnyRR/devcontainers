@@ -131,7 +131,7 @@ What is provisioned at build time (high-level):
   - `Azure CLI`
   - `SOPS`
 - Container tooling:
-  - `Docker` CLI (`docker` + `docker compose`) for Docker-outside-of-Docker - baked into the image, not a Feature
+  - `Docker (DooD)`
 - Browser/runtime dependencies:
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)

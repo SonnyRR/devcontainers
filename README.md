@@ -126,6 +126,8 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
 - Cloud and secrets tooling:
   - `Azure CLI`
   - `SOPS`
+- Container tooling:
+  - `Docker (DooD)`
 - Browser/runtime dependencies:
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)
@@ -143,10 +145,10 @@ Note: the base image `opensuse/tumbleweed:latest` may include additional preinst
 | Path                  | `OpenSUSE/Leap/`                                |
 | Devcontainer template | `OpenSUSE/Leap/.devcontainer/devcontainer.json` |
 
-A variant of the image above, based on the stable `opensuse/leap:latest` release
+A variant of the image above, based on the stable `opensuse/leap:16.0` release
 rather than the rolling `Tumbleweed` base. It provisions the same corporate trust
 setup, Microsoft package repo, toolchains, and developer defaults - and ships an
-equivalent ready-to-use `devcontainer.json` template. See `OpenSUSE/Leap16.0/README.md`
+equivalent ready-to-use `devcontainer.json` template. See `OpenSUSE/Leap/README.md`
 for the full breakdown.
 
 ### 🐧 Ubuntu LTS
