@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
   "name": "opensuse-leap",
   "shutdownAction": "stopContainer",
-  "image": "docker.io/<your-dockerhub-username>/opensuse-leap:latest",
+  "image": "docker.io/vkotzsev/opensuse-leap:latest",
   "remoteUser": "developer",
   "mounts": [
     "source=${localEnv:HOME}/.gitconfig,target=/home/developer/.gitconfig,type=bind,readonly",
