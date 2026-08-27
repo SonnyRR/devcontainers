@@ -1,6 +1,7 @@
 # 📦 Development Containers & Images
 
-This repository contains personal container images for Devcontainers.
+This repository contains personal container images for Devcontainers, tailored for
+AI-assisted .NET/NodeJS software development.
 
 ## 🧭 Purpose
 
@@ -12,7 +13,7 @@ This repository contains personal container images for Devcontainers.
 
 The full toolchain (language runtimes, SDKs, CLIs, shell, editor tooling, certificate
 trust, etc.) is **installed at image build time inside the `Dockerfile`** and shipped
-as part of the published `ACR` image. We deliberately **do not** rely on the devcontainer
+as part of the published image. I deliberately **do not** rely on the devcontainer
 spec's [Features](https://containers.dev/features) mechanism to provision the core
 toolchain at container-create time.
 
@@ -23,9 +24,6 @@ This is intentional. Baking the toolchain into the build phase gives us:
   picking up a new version on a Monday morning.
 - **Fast container startup.** No multi-minute per-create install step - the container
   is ready as soon as it's pulled.
-- **Offline / restricted-network friendly.** Once the image is in `ACR`, creating a
-  container does not require hitting Microsoft, GitHub, OCI Features registries, or
-  any other third-party endpoint.
 - **Single auditable supply chain.** Every install command, package version, signing
   key, and trust root lives in the `Dockerfile` in this repo, is reviewed via PR, and
   is built and scanned in CI. No opaque per-feature install scripts run on the
@@ -37,17 +35,12 @@ additions** that don't belong in the shared base image (see
 [Add a devcontainer template to your project](#4️⃣-add-a-devcontainer-template-to-your-project)).
 The core toolchain, however, always comes from the image.
 
-## 🛣️ Roadmap
-
-- Additional `Linux` image flavors will be added over time for different team and workload needs
-- Each flavor will have its own directory with a `Dockerfile` and image-specific `README`
-
 ## 🖼️ Images
 
 > [!NOTE]
 > 📄 **Every flavor below ships a ready-to-use `devcontainer.json` template** under
 > its `<flavor>/.devcontainer/devcontainer.json`. The template wires up the published
-> `ACR` image with sensible defaults (non-root `developer` user, `Fish` as the default
+> image with sensible defaults (non-root `developer` user, `Fish` as the default
 > VS Code terminal, persistent `Fish` history & XDG cache volumes, a read-only bind
 > mount of your host `~/.gitconfig`, a tuned `NODE_OPTIONS` heap, and a curated set of
 > VS Code extensions for `.NET`, web, and GitHub workflows). It is intended as a
@@ -170,14 +163,9 @@ publishes `.NET` to `packages.microsoft.com` for Ubuntu), the `Azure CLI` is ins
 via Microsoft's maintained installer, and `fnm`/`sops` are pulled as release binaries
 since they are not packaged in apt. See `Ubuntu/LTS/README.md` for the full breakdown.
 
-## ☁️ Consumption Model
-
-- Use local builds for validation and iteration while developing image changes
-- For actual application repositories, pull published images from Docker Hub
-
 ## 🏷️ Image Tags
 
-Each flavor is published to `docker.io/<your-dockerhub-username>/<image>` with the following stable
+Each flavor is published to `docker.io/vkotzsev/<image>` with the following stable
 tags built from `main`:
 
 | Flavor              | Image                 | Stable tags                                |
@@ -209,15 +197,6 @@ so the image can be pulled.
   [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
   extension (or the [`devcontainer` CLI](https://github.com/devcontainers/cli))
 - A container runtime (`Docker` or `Podman`)
-- The [`Azure CLI`](https://learn.microsoft.com/cli/azure/install-azure-cli) (`az`)
-
-### 1️⃣ Log in to Docker Hub
-
-Use the `Docker CLI` to log the container runtime in to Docker Hub:
-
-```bash
-docker login
-```
 
 ### 2️⃣ Add a devcontainer template to your project
 
@@ -240,20 +219,17 @@ Copy the template for the flavor you want into your repository at
 
 | Flavor              | Template                                              | Published image                                         |
 | ------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| OpenSUSE Tumbleweed | `OpenSUSE/Tumbleweed/.devcontainer/devcontainer.json` | `docker.io/<your-dockerhub-username>/opensuse-tumbleweed:latest` |
-| OpenSUSE Leap       | `OpenSUSE/Leap/.devcontainer/devcontainer.json`       | `docker.io/<your-dockerhub-username>/opensuse-leap:latest`       |
-| Ubuntu LTS          | `Ubuntu/LTS/.devcontainer/devcontainer.json`          | `docker.io/<your-dockerhub-username>/ubuntu-lts:latest`          |
+| OpenSUSE Tumbleweed | `OpenSUSE/Tumbleweed/.devcontainer/devcontainer.json` | `docker.io/vkotzsev/opensuse-tumbleweed:latest` |
+| OpenSUSE Leap       | `OpenSUSE/Leap/.devcontainer/devcontainer.json`       | `docker.io/vkotzsev/opensuse-leap:latest`       |
+| Ubuntu LTS          | `Ubuntu/LTS/.devcontainer/devcontainer.json`          | `docker.io/vkotzsev/ubuntu-lts:latest`          |
 
 > [!TIP]
 > The templates reference the `:latest` tag. To pin to a specific version, change the
-> `image` tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:26.04`), or pin to an exact commit
-> with the full-SHA tag (e.g. `docker.io/<your-dockerhub-username>/ubuntu-lts:<40-char-commit-sha>`).
+> `image` tag (e.g. `docker.io/vkotzsev/ubuntu-lts:26.04`), or pin to an exact commit
+> with the full-SHA tag (e.g. `docker.io/vkotzsev/ubuntu-lts:<40-char-commit-sha>`).
 
 ### 5️⃣ Open the project in the container
 
 - **VS Code:** open the repository and run **Dev Containers: Reopen in Container** from the
   command palette.
 - **CLI:** run `devcontainer up --workspace-folder .` from the repository root.
-
-VS Code (or the CLI) will pull the image from `ACR` using the credentials configured in
-step 3 and start your development container.

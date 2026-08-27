@@ -1,6 +1,8 @@
 # 🐧 OpenSUSE Tumbleweed Devcontainer Image
 
-This directory contains the `Dockerfile` for a custom general-purpose devcontainer, based on `opensuse/tumbleweed:latest`, alongside a template `devcontainer.json` for use in actual codebases.
+This directory contains the `Dockerfile` for a custom general-purpose devcontainer,
+based on `opensuse/tumbleweed:latest`, alongside a template `devcontainer.json` for
+use in actual codebases.
 
 ## 📄 Devcontainer Template (with Sensible Defaults)
 
@@ -9,7 +11,7 @@ A ready-to-use `devcontainer.json` example ships at
 your project at `.devcontainer/devcontainer.json` to get a fully wired-up environment
 out of the box. The template configures:
 
-- **Image:** `docker.io/<your-dockerhub-username>/opensuse-tumbleweed:latest` (pin to a dated
+- **Image:** `docker.io/vkotzsev/opensuse-tumbleweed:latest` (pin to a dated
   `YYYY.MM.DD.N` tag for reproducibility)
 - **User:** runs as the non-root `developer` account
 - **Shell:** `Fish` set as the default VS Code integrated terminal profile
@@ -164,7 +166,7 @@ For real project repositories, this image should be consumed from Docker Hub, no
 
 ## 🏷️ Image Tags
 
-Published to `docker.io/<your-dockerhub-username>/opensuse-tumbleweed`. This flavor uses date-based
+Published to `docker.io/vkotzsev/opensuse-tumbleweed`. This flavor uses date-based
 (`CalVer`) versioning:
 
 - `latest` - the most recent build from `main`

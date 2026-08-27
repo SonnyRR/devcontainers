@@ -1,6 +1,8 @@
 # 🐧 Ubuntu LTS Devcontainer Image
 
-This directory contains the `Dockerfile` for a custom general-purpose devcontainer, based on `ubuntu:26.04`, alongside a template `devcontainer.json` for use in actual codebases.
+This directory contains the `Dockerfile` for a custom general-purpose devcontainer,
+based on `ubuntu:26.04`, alongside a template `devcontainer.json` for use in actual
+codebases.
 
 ## 📄 Devcontainer Template (with Sensible Defaults)
 
@@ -9,7 +11,7 @@ A ready-to-use `devcontainer.json` example ships at
 your project at `.devcontainer/devcontainer.json` to get a fully wired-up environment
 out of the box. The template configures:
 
-- **Image:** `docker.io/<your-dockerhub-username>/ubuntu-lts:latest` (pin to `26.04` for the
+- **Image:** `docker.io/vkotzsev/ubuntu-lts:latest` (pin to `26.04` for the
   fixed-version tag)
 - **User:** runs as the non-root `developer` account
 - **Shell:** `Fish` set as the default VS Code integrated terminal profile
@@ -143,7 +145,7 @@ Note: the base image `ubuntu:26.04` may include additional preinstalled OS packa
 ## 🛠️ Build Locally
 
 ```bash
-docker buildx build --load -t ubuntu-lts-devbox:local -f .\Ubuntu\LTS\Dockerfile .
+docker buildx build --load -t ubuntu-lts-devbox:local -f ./Ubuntu/LTS/Dockerfile .
 ```
 
 ## ▶️ Run Locally
@@ -161,7 +163,7 @@ For real project repositories, this image should be consumed from Docker Hub, no
 
 ## 🏷️ Image Tags
 
-Published to `docker.io/<your-dockerhub-username>/ubuntu-lts`. This flavor tracks a fixed release
+Published to `docker.io/vkotzsev/ubuntu-lts`. This flavor tracks a fixed release
 version:
 
 - `latest` - the most recent build from `main`
