@@ -33,7 +33,9 @@ This is intentional. Baking the toolchain into the build phase gives us:
 Devcontainer Features remain a perfectly valid escape hatch for **project-specific
 additions** that don't belong in the shared base image (see
 [Add a devcontainer template to your project](#4️⃣-add-a-devcontainer-template-to-your-project)).
-The core toolchain, however, always comes from the image.
+The core toolchain, however, always comes from the image - for example,
+Docker-outside-of-Docker (the `docker` CLI client plus a bind-mounted host socket) is
+baked into every flavor rather than pulled in via the `docker-outside-of-docker` Feature.
 
 ## 🖼️ Images
 
@@ -233,3 +235,32 @@ Copy the template for the flavor you want into your repository at
 - **VS Code:** open the repository and run **Dev Containers: Reopen in Container** from the
   command palette.
 - **CLI:** run `devcontainer up --workspace-folder .` from the repository root.
+
+### 🧪 Build locally & drive with the devcontainer CLI
+
+You don't have to consume the published image - you can build any flavor locally and
+point a project at it. Build from the **repo root** (the `Dockerfile`s `COPY` from
+`<flavor>/cfg/...`, so the build context must be the repository root):
+
+```bash
+docker buildx build --load --platform linux/amd64 -t ubuntu-lts-devbox:local -f ./Ubuntu/LTS/Dockerfile .
+```
+
+> [!NOTE]
+> On macOS pass `--platform linux/amd64` (or `linux/arm64` on Apple Silicon); the default
+> builder otherwise targets the host platform and won't produce a Linux image.
+
+Then either retag to the template's image name (`docker.io/vkotzsev/<flavor>:latest`) or
+copy the flavor's `devcontainer.json` and set its `image` to your local tag, and bring it
+up with the CLI:
+
+```bash
+devcontainer up --workspace-folder /path/to/your-project
+devcontainer exec --workspace-folder /path/to/your-project -- docker ps
+```
+
+The CLI has no `stop`/`down` command - tear down the container with Docker directly
+(`docker ps` to find the name, then `docker rm -f <container>`). Each flavor's README has
+the full local-build + CLI walkthrough, including the macOS Docker-outside-of-Docker socket
+caveat (see [🐳 Docker (outside of Docker)](#-docker-outside-of-docker) in the flavor
+READMEs).

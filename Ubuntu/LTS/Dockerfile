@@ -45,6 +45,20 @@ RUN curl -fsSL https://yazi-rs.github.io/builds/yazi-keyring.gpg \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/yazi-keyring.gpg] https://yazi-rs.github.io/builds stable main" \
       > /etc/apt/sources.list.d/yazi.list
 
+## Set up the official Docker apt repository for the docker CLI.
+## NOTE: Docker is not in the Ubuntu feed. This uses Docker's maintained,
+## GPG-signed keyring + apt repo (the official method), keeping docker on the
+## same auditable "signed repo baked at build time" footing as gh/yazi.
+## Only the CLI client (docker-ce-cli) is installed; the daemon runs on the
+## host (Docker-outside-of-Docker). See:
+## https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+      -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+      > /etc/apt/sources.list.d/docker.list
+
 ## Install base developer toolchains.
 ## NOTE: On Ubuntu 26.04 the .NET SDK ships in the distro's own apt feed
 ## (Microsoft no longer publishes .NET to packages.microsoft.com for Ubuntu),
@@ -111,6 +125,14 @@ RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb -o /tmp/install-azure-cli.sh &&
     bash /tmp/install-azure-cli.sh && \
     rm -f /tmp/install-azure-cli.sh
 
+## Install the Docker CLI client + compose plugin (Docker-outside-of-Docker).
+## NOTE: Only the CLI is installed; the Docker daemon runs on the host and the
+## socket is bind-mounted into the container at devcontainer-create time.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      docker-ce-cli \
+      docker-compose-plugin \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 ## Install developer CLIs that Ubuntu does not package (fnm, sops),
 ## pulling the latest release binaries for the build host's architecture.
 ## NOTE: The latest version is resolved from the GitHub release page's
@@ -153,6 +175,12 @@ RUN set -eux; \
 
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
+## Create the docker group for Docker-outside-of-Docker and grant the
+## developer user access; the in-container GID is aligned to the mounted
+## host socket at devcontainer-create time (see docker-socket-init.sh).
+RUN getent group docker >/dev/null || groupadd docker && \
+    usermod -aG docker "$USERNAME"
+
 ## Set up sudoers.
 RUN getent group wheel >/dev/null || groupadd wheel && \
     usermod -aG wheel "$USERNAME" && \
@@ -163,6 +191,15 @@ RUN getent group wheel >/dev/null || groupadd wheel && \
     printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/bin/passwd $USERNAME" > /etc/sudoers.d/11-passwd-bootstrap && \
     chmod 0440 /etc/sudoers.d/11-passwd-bootstrap && \
     chmod 0440 /etc/sudoers.d/10-wheel-passwd
+
+## Install the Docker-outside-of-Docker socket GID alignment helper and
+## allow the developer user to run it without a password (mirrors the
+## passwd-bootstrap NOPASSWD rule). See: Ubuntu/LTS/cfg/docker-socket-init.sh
+COPY Ubuntu/LTS/cfg/docker-socket-init.sh /usr/local/bin/docker-socket-init.sh
+RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
+    chown root:root /usr/local/bin/docker-socket-init.sh && \
+    printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/docker-socket-init.sh" > /etc/sudoers.d/12-docker-socket-init && \
+    chmod 0440 /etc/sudoers.d/12-docker-socket-init
 
 ## Set up sensible defaults for the fish terminal.
 RUN mkdir -p /home/$USERNAME/.config/fish

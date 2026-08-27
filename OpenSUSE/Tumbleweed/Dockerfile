@@ -93,9 +93,17 @@ RUN zypper -n in --no-recommends \
       python314 \
       azure-cli \
       luajit \
+      docker \
+      docker-compose \
     && zypper -n clean -a
 
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
+
+## Create the docker group for Docker-outside-of-Docker and grant the
+## developer user access; the in-container GID is aligned to the mounted
+## host socket at devcontainer-create time (see docker-socket-init.sh).
+RUN getent group docker >/dev/null || groupadd docker && \
+    usermod -aG docker "$USERNAME"
 
 ## Set up sudoers.
 RUN getent group wheel >/dev/null || groupadd wheel && \
@@ -107,6 +115,15 @@ RUN getent group wheel >/dev/null || groupadd wheel && \
     printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/bin/passwd $USERNAME" > /etc/sudoers.d/11-passwd-bootstrap && \
     chmod 0440 /etc/sudoers.d/11-passwd-bootstrap && \
     chmod 0440 /etc/sudoers.d/10-wheel-passwd
+
+## Install the Docker-outside-of-Docker socket GID alignment helper and
+## allow the developer user to run it without a password (mirrors the
+## passwd-bootstrap NOPASSWD rule). See: OpenSUSE/Shared/cfg/docker-socket-init.sh
+COPY OpenSUSE/Shared/cfg/docker-socket-init.sh /usr/local/bin/docker-socket-init.sh
+RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
+    chown root:root /usr/local/bin/docker-socket-init.sh && \
+    printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/docker-socket-init.sh" > /etc/sudoers.d/12-docker-socket-init && \
+    chmod 0440 /etc/sudoers.d/12-docker-socket-init
 
 ## Set up sensible defaults for the fish terminal.
 RUN mkdir -p /home/$USERNAME/.config/fish
