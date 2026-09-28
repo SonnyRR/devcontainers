@@ -134,7 +134,7 @@ What is provisioned at build time (high-level):
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)
 - AI developer tooling:
-  - `OpenCode` (global `npm` install)
+  - `OpenCode V2` (global `npm` install of `@opencode/cli`)
   - `Anthropic Claude Code CLI` (global `npm` install)
 
 Note: the base image `opensuse/leap:latest` may include additional preinstalled OS packages not listed above.

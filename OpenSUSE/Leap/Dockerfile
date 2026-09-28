@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------------------
 # Description : OpenSUSE Leap based devcontainer image tailored for .NET/NodeJS ecosystems
 # Author      : Vasil Kotsev
-# Updated     : 2026-02-12
+# Updated     : 2026-09-28
 # ----------------------------------------------------------------------------------------
 FROM opensuse/leap:16.0
 
@@ -157,7 +157,14 @@ USER $USERNAME
 RUN fish -lc 'fnm install --lts; fnm default lts-latest'
 
 ## Set up AI CLI Harnesses & additional CLI tools as global NodeJS packages.
-RUN fish -lc 'fnm exec --using lts-latest npm install -g corepack@latest opencode-ai @anthropic-ai/claude-code tree-sitter-cli'
+## NOTE: OpenCode V2 is the scoped `@opencode/cli` package; the V1 line shipped
+## under the unscoped name `opencode-ai`. A postinstall hook resolves the native
+## `opencode` binary for the build platform out of the package's
+## optionalDependencies (@opencode/cli-linux-x64 or -linux-arm64, with musl and
+## AVX2-baseline variants), so the installed `opencode` is a self-contained
+## native binary rather than a NodeJS shim. This is the documented V2 install
+## path, so no curl/binary juggling is needed. See: https://opencode.ai/v2/docs/
+RUN fish -lc 'fnm exec --using lts-latest npm install -g corepack@latest @opencode/cli @anthropic-ai/claude-code tree-sitter-cli'
 
 ## Setup pnpm
 RUN fish -lc 'fnm exec --using lts-latest corepack enable pnpm'

@@ -132,7 +132,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `GNOME Keyring`
   - Browser runtime support libraries (graphics/audio/X11/font stack)
 - AI developer tooling:
-  - `OpenCode` (global `npm` install)
+  - `OpenCode V2` (global `npm` install of `@opencode/cli`)
   - `Anthropic Claude Code CLI` (global `npm` install)
 
 Note: the base image `opensuse/tumbleweed:latest` may include additional preinstalled OS packages not listed above.
