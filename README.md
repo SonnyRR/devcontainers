@@ -80,6 +80,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `Curl`
   - `OpenSSL`
   - `GPG` (signing & key management)
+  - `pass` (GNU password-store; packaged as `password-store` on `openSUSE`)
 - System and privilege tools:
   - `Sudo`
   - Development toolchain (`patterns-devel-base-devel_basis`)
@@ -90,6 +91,9 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `GitHub CLI` (`gh`)
   - `OpenSSH`
   - `Lazygit` (terminal UI for `Git`)
+  - `Git Credential Manager` (`git-credential-manager`, registered as the
+    system-wide `credential.helper` - see
+    [Git Credential Manager](#-git-credential-manager))
 - Terminal and shell experience:
   - `Fish` shell (w/shell integration)
   - `FZF` (w/shell completion)
@@ -123,6 +127,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
     - `nuke.globaltool`
     - `ilspycmd`
     - `easydotnet`
+    - `git-credential-manager`
 - Cloud and secrets tooling:
   - `Azure CLI`
   - `SOPS`
@@ -166,6 +171,84 @@ differences: `.NET` is installed from Ubuntu's own apt feed (Microsoft no longer
 publishes `.NET` to `packages.microsoft.com` for Ubuntu), the `Azure CLI` is installed
 via Microsoft's maintained installer, and `fnm`/`sops` are pulled as release binaries
 since they are not packaged in apt. See `Ubuntu/LTS/README.md` for the full breakdown.
+
+## 🔐 Git Credential Manager
+
+Every flavor installs
+[Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
+(GCM) as a global `.NET` tool - the method the GCM project documents as preferred on
+Linux - and registers it as the **system-wide** Git credential helper in
+`/etc/gitconfig`:
+
+```ini
+[credential]
+    helper =
+    helper = /home/developer/.dotnet/tools/git-credential-manager
+```
+
+- The leading empty `helper =` is deliberate. Git resets the accumulated helper chain
+  on an empty value, so any helper inherited from your host `~/.gitconfig` is dropped
+  and GCM becomes the only helper in the chain.
+- System scope, rather than a plain `git-credential-manager configure`, is what makes
+  this survive the templates' **read-only** bind mount of your host `~/.gitconfig` over
+  `/home/developer/.gitconfig`. A user-level entry would be shadowed at runtime.
+
+### One-time in-container bootstrap
+
+GCM ships with **no default credential store on Linux**, so the images select its
+GPG/`pass`-compatible store (`GCM_CREDENTIAL_STORE=gpg`) to keep credentials encrypted
+at rest inside the container. That store needs a GPG key of its own. Generate one
+entirely inside the devcontainer - **nothing is required on the host machine**:
+
+```bash
+# 1. create a passphrase-less key (an empty passphrase means gpg-agent never prompts)
+gpg --batch --passphrase '' \
+    --quick-generate-key 'Your Name <you@example.com>' default default never
+
+# 2. initialise the password store against that key
+pass init you@example.com
+```
+
+Verify:
+
+```bash
+git-credential-manager --version
+git config --system --get-all credential.helper
+```
+
+The first HTTPS `git clone`/`git push` then triggers GCM's normal device-code or
+browser sign-in flow.
+
+> [!NOTE]
+> The images set `GPG_TTY=/dev/null`. That is a deliberate non-terminal, not a real
+> TTY: GCM refuses to load the gpg store unless `GPG_TTY` or `SSH_TTY` is merely
+> *present* (a plain environment-variable presence check), and because the key above
+> has no passphrase, `gpg-agent` never actually opens a terminal. This is what lets
+> the same setup work over SSH, in the VS Code terminal, and in the VS Code Git UI,
+> with no TTY plumbing.
+
+> [!IMPORTANT]
+> `GPG_TTY=/dev/null` is only valid while the key has **no** passphrase. If you
+> passphrase-protect it, prompting will fail - drop the variable and run
+> `export GPG_TTY=$(tty)` in a real interactive session instead.
+
+> [!NOTE]
+> None of this is persisted by default, because a container's writable layer is
+> ephemeral: a recreated container means a fresh key and a fresh `pass init`. To carry
+> the key and stored credentials across recreations, add volumes for
+> `/home/developer/.gnupg` and `/home/developer/.password-store` to your
+> `devcontainer.json`. Create both directories in the image first - Docker seeds a
+> fresh volume from the image path, so if the paths do not exist the volume is created
+> `root`-owned and GnuPG will refuse to use it.
+
+Prefer a different store? GCM gives environment variables precedence over Git config,
+so any of these work per-shell without editing `/etc/gitconfig`:
+
+```bash
+GCM_CREDENTIAL_STORE=cache git clone ...      # in-memory only, nothing at rest
+GCM_CREDENTIAL_STORE=plaintext git clone ...  # ⚠️ unencrypted on disk
+GCM_CREDENTIAL_STORE=none git clone ...       # no store; chain your own helper
+```
 
 ## 🏷️ Image Tags
 

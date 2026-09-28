@@ -82,6 +82,7 @@ What is provisioned at build time (high-level):
   - `Curl`
   - `OpenSSL`
   - `GPG` (signing & key management)
+  - `pass` (GNU password-store, used by Git Credential Manager)
 - System and privilege tools:
   - `Sudo`
   - `Build Essential` (GCC/G++/Make toolchain)
@@ -90,6 +91,7 @@ What is provisioned at build time (high-level):
   - `GitHub CLI` (`gh`)
   - `OpenSSH` (client)
   - `Lazygit` (terminal UI for `Git`)
+  - `Git Credential Manager` (`credential.helper`, system-wide)
 - Terminal and shell experience:
   - `Fish` shell (w/shell integration)
   - `fzf`
@@ -126,6 +128,7 @@ What is provisioned at build time (high-level):
     - `nuke.globaltool`
     - `ilspycmd`
     - `easydotnet`
+    - `git-credential-manager`
 - Cloud and secrets tooling:
   - `Azure CLI`
   - `SOPS` (release binary)
@@ -146,6 +149,83 @@ Note: the base image `ubuntu:26.04` may include additional preinstalled OS packa
 - Default shell is `Fish`: `/usr/bin/fish`
 - User is added to `wheel` with sudo configuration files under `/etc/sudoers.d`
 - MOTD includes guidance for enabling password-based sudo bootstrap
+
+## 🔐 Git Credential Manager
+
+[Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
+(GCM) is installed as a global `.NET` tool - the method the GCM project documents as
+preferred on Linux - and registered as the **system-wide** Git credential helper in
+`/etc/gitconfig`:
+
+```ini
+[credential]
+    helper =
+    helper = /home/developer/.dotnet/tools/git-credential-manager
+```
+
+- The leading empty `helper =` is deliberate. Git resets the accumulated helper chain
+  on an empty value, so any helper inherited from your host `~/.gitconfig` is dropped
+  and GCM becomes the only helper in the chain.
+- System scope, rather than a plain `git-credential-manager configure`, is what makes
+  this survive the template's **read-only** bind mount of your host `~/.gitconfig`
+  over `/home/developer/.gitconfig`. A user-level entry would be shadowed at runtime.
+
+### One-time in-container bootstrap
+
+GCM ships with **no default credential store on Linux**, so this image selects its
+GPG/`pass`-compatible store (`GCM_CREDENTIAL_STORE=gpg`) to keep credentials encrypted
+at rest inside the container. That store needs a GPG key of its own. Generate one
+entirely inside the devcontainer - **nothing is required on the host machine**:
+
+```bash
+# 1. create a passphrase-less key (an empty passphrase means gpg-agent never prompts)
+gpg --batch --passphrase '' \
+    --quick-generate-key 'Your Name <you@example.com>' default default never
+
+# 2. initialise the password store against that key
+pass init you@example.com
+```
+
+Verify:
+
+```bash
+git-credential-manager --version
+git config --system --get-all credential.helper
+```
+
+The first HTTPS `git clone`/`git push` then triggers GCM's normal device-code or
+browser sign-in flow.
+
+> [!NOTE]
+> The image sets `GPG_TTY=/dev/null`. That is a deliberate non-terminal, not a real
+> TTY: GCM refuses to load the gpg store unless `GPG_TTY` or `SSH_TTY` is merely
+> *present* (a plain environment-variable presence check), and because the key above
+> has no passphrase, `gpg-agent` never actually opens a terminal. This is what lets
+> the same setup work over SSH, in the VS Code terminal, and in the VS Code Git UI,
+> with no TTY plumbing.
+
+> [!IMPORTANT]
+> `GPG_TTY=/dev/null` is only valid while the key has **no** passphrase. If you
+> passphrase-protect it, prompting will fail - drop the variable and run
+> `export GPG_TTY=$(tty)` in a real interactive session instead.
+
+> [!NOTE]
+> None of this is persisted by default, because a container's writable layer is
+> ephemeral: a recreated container means a fresh key and a fresh `pass init`. To carry
+> the key and stored credentials across recreations, add volumes for
+> `/home/developer/.gnupg` and `/home/developer/.password-store` to your
+> `devcontainer.json`. Create both directories in the image first - Docker seeds a
+> fresh volume from the image path, so if the paths do not exist the volume is created
+> `root`-owned and GnuPG will refuse to use it.
+
+Prefer a different store? GCM gives environment variables precedence over Git config,
+so any of these work per-shell without editing `/etc/gitconfig`:
+
+```bash
+GCM_CREDENTIAL_STORE=cache git clone ...      # in-memory only, nothing at rest
+GCM_CREDENTIAL_STORE=plaintext git clone ...  # ⚠️ unencrypted on disk
+GCM_CREDENTIAL_STORE=none git clone ...       # no store; chain your own helper
+```
 
 ## 🐳 Docker (outside of Docker)
 
