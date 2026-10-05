@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------
 # Description : General-purpose Ubuntu-based devcontainer image tailored for .NET/NodeJS ecosystems
 # Author      : Vasil Kotsev
-# Updated     : 2026-09-28
+# Updated     : 2026-10-05
 # ---------------------------------------------------------------------------------------
 FROM ubuntu:26.04
 
@@ -93,7 +93,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ncdu \
       btop \
       gpg \
-      pass \
       pinentry-curses \
       fish \
       tmux \
@@ -204,23 +203,13 @@ RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
     printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/docker-socket-init.sh" > /etc/sudoers.d/12-docker-socket-init && \
     chmod 0440 /etc/sudoers.d/12-docker-socket-init
 
-## Register Git Credential Manager as the system-wide Git credential helper.
-## NOTE: This is byte-for-byte what `git-credential-manager configure --system`
-## writes, but it is authored here instead of executed because the tool is
-## installed further down as the non-root `developer` user, who cannot write
-## /etc/gitconfig at build time. Writing it at the system level (rather than via
-## a plain `git-credential-manager configure`) is also what makes it survive the
-## devcontainer template's READ-ONLY bind mount of the host ~/.gitconfig over
-## /home/developer/.gitconfig - a user-level entry would be shadowed at runtime.
-## The leading empty `helper =` is required: Git resets the accumulated helper
-## chain on an empty value, so a helper inherited from the host ~/.gitconfig is
-## dropped and GCM becomes the only helper. See:
-## https://github.com/git-ecosystem/git-credential-manager/blob/main/docs/usage.md
-RUN printf '%s\n\t%s\n\t%s\n' \
-      '[credential]' \
-      'helper =' \
-      "helper = /home/$USERNAME/.dotnet/tools/git-credential-manager" \
-      > /etc/gitconfig
+## Pre-create GCM's credential store directory.
+## NOTE: Docker seeds a fresh named volume from the image path. If the path does
+## not exist, the volume is created `root`-owned and GCM - which refuses to widen
+## permissions on an existing store - cannot use it. Pre-creating it here means a
+## user who adds a volume for /home/developer/.gcm gets a correctly-owned store.
+RUN mkdir -p /home/$USERNAME/.gcm && \
+    chown $USERNAME:$USERNAME /home/$USERNAME/.gcm
 
 ## Set up sensible defaults for the fish terminal.
 RUN mkdir -p /home/$USERNAME/.config/fish
@@ -228,26 +217,11 @@ COPY Ubuntu/LTS/cfg/config.fish /home/$USERNAME/.config/fish/config.fish
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/.config
 
 ## Environment variables.
-## NOTE: These are primarily configured in Ubuntu/LTS/cfg/config.fish,
-## and are duplicated here as a fallback for non-fish shells.
-## GCM_CREDENTIAL_STORE=gpg selects Git Credential Manager's GPG/`pass`-compatible
-## credential store. GCM ships with NO default store on Linux, so without this
-## every credential write fails until a store is chosen. See the "Git Credential
-## Manager" section of README.md for the one-time in-container key bootstrap.
-## GPG_TTY=/dev/null is a deliberate non-terminal, not a real TTY: GCM refuses to
-## load the gpg store unless GPG_TTY or SSH_TTY is merely *present* (a plain
-## env-var presence check in CredentialStore.ValidateGpgPass), and because the
-## documented bootstrap produces a passphrase-less key, gpg-agent never actually
-## opens a terminal - so this satisfies that guard with no TTY and no pinentry.
-## NOTE: this is only valid while the key has no passphrase. If you passphrase-
-## protect it, drop this and `export GPG_TTY=$(tty)` in a real interactive session.
 ENV SHELL=/usr/bin/fish \
     FNM_DIR=/home/${USERNAME}/.local/share/fnm \
     EDITOR=nvim \
     VISUAL=nvim \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
-    GCM_CREDENTIAL_STORE=gpg \
-    GPG_TTY=/dev/null \
     SSL_CERT_DIR=/home/${USERNAME}/.aspnet/dev-certs/trust:/etc/ssl/certs \
     PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.local/bin:${PATH}
 
