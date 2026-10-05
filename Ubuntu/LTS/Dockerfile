@@ -91,6 +91,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openssh-client \
       gnome-keyring \
       ncdu \
+      btop \
       gpg \
       pass \
       pinentry-curses \
@@ -115,6 +116,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       sqlite3 \
       dotnet-sdk-10.0 \
       python3 \
+      python3.14-venv \
       luajit \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
