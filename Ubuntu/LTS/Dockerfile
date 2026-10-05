@@ -259,13 +259,6 @@ USER $USERNAME
 RUN fish -lc 'fnm install --lts; fnm default lts-latest'
 
 ## Set up AI CLI Harnesses & additional CLI tools as global NodeJS packages.
-## NOTE: OpenCode V2 is the scoped `@opencode/cli` package; the V1 line shipped
-## under the unscoped name `opencode-ai`. A postinstall hook resolves the native
-## `opencode` binary for the build platform out of the package's
-## optionalDependencies (@opencode/cli-linux-x64 or -linux-arm64, with musl and
-## AVX2-baseline variants), so the installed `opencode` is a self-contained
-## native binary rather than a NodeJS shim. This is the documented V2 install
-## path, so no curl/binary juggling is needed. See: https://opencode.ai/v2/docs/
 RUN fish -lc 'fnm exec --using lts-latest npm install -g corepack@latest @opencode/cli @anthropic-ai/claude-code tree-sitter-cli'
 
 ## Setup pnpm
@@ -275,23 +268,6 @@ RUN fish -lc 'fnm exec --using lts-latest corepack enable pnpm'
 RUN fish -lc 'dotnet dev-certs https -t'
 
 ## Provision global dotnet tools
-## NOTE: git-credential-manager is installed as a global .NET tool because that
-## is the method the GCM project documents as preferred on Linux - it needs no
-## per-distribution .deb/.rpm and no extra download step, and it lands in
-## ~/.dotnet/tools which is already on PATH (see ENV above). That location is
-## what /etc/gitconfig above points credential.helper at.
 RUN fish -lc 'dotnet tool install -g dotnet-ef && dotnet tool install -g dotnet-outdated-tool && dotnet tool install -g gitversion.tool && dotnet tool install -g nuke.globaltool && dotnet tool install -g ilspycmd && dotnet tool install -g easydotnet && dotnet tool install -g git-credential-manager'
-
-## Verify the baked-in Git Credential Manager wiring.
-## NOTE: /etc/gitconfig hard-codes the tool's install path, so if the tool layout
-## ever drifts the build must fail loudly here rather than silently degrading to
-## a username/password prompt for every Git remote at runtime. `pass` is checked
-## too because the gpg credential store cannot be initialised without it.
-RUN set -eu; \
-    helper="$(git config --system --get-all credential.helper | tail -n 1)"; \
-    test -n "$helper" || { echo 'no system-wide credential.helper configured' >&2; exit 1; }; \
-    test -x "$helper" || { echo "configured credential.helper '$helper' is not executable" >&2; exit 1; }; \
-    command -v pass >/dev/null || { echo 'pass is missing from PATH' >&2; exit 1; }; \
-    git-credential-manager --version
 
 CMD ["/usr/bin/fish"]
