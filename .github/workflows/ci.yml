@@ -154,6 +154,8 @@ jobs:
           FLAVOR: ${{ matrix.flavor }}
           VERSIONING: ${{ steps.meta.outputs.versioning }}
           BASE_VERSION: ${{ steps.meta.outputs.base_version }}
+          IMAGE_NAME: ${{ steps.meta.outputs.image_name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           set -euo pipefail
 
@@ -195,10 +197,23 @@ jobs:
           sha_tag="${GITHUB_SHA}"
 
           if [[ "${GITHUB_REF}" == "refs/heads/main" || "${GITHUB_REF}" == "refs/heads/master" ]]; then
-            img_tags="${release_tags},${sha_tag}"
+            tag_names="${release_tags},${sha_tag}"
           else
-            img_tags="beta-${version}-${short_sha},beta-${safe_branch}-${short_sha},beta-${safe_branch}-latest,${sha_tag}"
+            tag_names="beta-${version}-${short_sha},beta-${safe_branch}-${short_sha},beta-${safe_branch}-latest,${sha_tag}"
           fi
+
+          # build-push-action's `tags` input is comma-separated and each element is
+          # handed to buildx as a separate --tag. Every element must therefore be a
+          # COMPLETE image reference: a bare "latest" is normalised by buildx into
+          # docker.io/library/latest (the official namespace), which is not pushable
+          # from this account. Emit fully-qualified refs for every tag.
+          repo="docker.io/${DOCKERHUB_USERNAME}/${IMAGE_NAME}"
+          img_tags=""
+          IFS=',' read -ra tag_names_arr <<< "$tag_names"
+          for tag_name in "${tag_names_arr[@]}"; do
+            img_tags+="${repo}:${tag_name},"
+          done
+          img_tags="${img_tags%,}"
 
           {
             echo "version=${version}"
@@ -223,7 +238,7 @@ jobs:
           context: ${{ steps.meta.outputs.context }}
           file: ${{ steps.meta.outputs.dockerfile_path }}
           push: true
-          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.meta.outputs.image_name }}:${{ steps.version.outputs.img_tags }}
+          tags: ${{ steps.version.outputs.img_tags }}
 
       - name: Tag git commit with release version
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
