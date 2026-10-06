@@ -1,13 +1,8 @@
-# 📦 Development Containers & Images
+# 📦 VK's Devcontainers
 
 This repository contains personal container images for Devcontainers, tailored for
-AI-assisted .NET/NodeJS software development.
-
-## 🎯 Purpose
-
-- Provide standardized, reproducible `Linux` development environments
-- Centralize image definitions, toolchains, and security/trust configuration in one place
-- Publish curated images to Docker Hub for consumption by real code repositories
+AI-assisted .NET/NodeJS software development. It aims to provide a reproducible
+& standardized `Linux` development environments.
 
 ## 🧰 Toolchains
 
