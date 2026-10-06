@@ -4,6 +4,8 @@ This repository contains personal container images for Devcontainers, tailored f
 AI-assisted .NET/NodeJS software development. It aims to provide a reproducible
 & standardized `Linux` development environments.
 
+![vkotzsev/opensuse-tumbleweed](https://img.shields.io/docker/v/vkotzsev/opensuse-tumbleweed/latest?label=vkotzsev%2Fopensuse-tumbleweed&logo=docker) ![vkotzsev/opensuse-leap](https://img.shields.io/docker/v/vkotzsev/opensuse-leap/latest?label=vkotzsev%2Fopensuse-leap&logo=docker) ![vkotzsev/ubuntu-lts](https://img.shields.io/docker/v/vkotzsev/ubuntu-lts/latest?label=vkotzsev%2Fubuntu-lts&logo=docker)
+
 ## 🧰 Toolchains
 
 The full toolchain (language runtimes, SDKs, CLIs, shell, editor tooling, certificate
