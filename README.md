@@ -3,13 +3,13 @@
 This repository contains personal container images for Devcontainers, tailored for
 AI-assisted .NET/NodeJS software development.
 
-## 🧭 Purpose
+## 🎯 Purpose
 
 - Provide standardized, reproducible `Linux` development environments
 - Centralize image definitions, toolchains, and security/trust configuration in one place
 - Publish curated images to Docker Hub for consumption by real code repositories
 
-## 🧱 Toolchains
+## 🧰 Toolchains
 
 The full toolchain (language runtimes, SDKs, CLIs, shell, editor tooling, certificate
 trust, etc.) is **installed at image build time inside the `Dockerfile`** and shipped
@@ -32,21 +32,21 @@ This is intentional. Baking the toolchain into the build phase gives us:
 
 Devcontainer Features remain a perfectly valid escape hatch for **project-specific
 additions** that don't belong in the shared base image (see
-[Add a devcontainer template to your project](#4️⃣-add-a-devcontainer-template-to-your-project)).
+[Add a devcontainer template to your project](#2️⃣-add-a-devcontainer-template-to-your-project)).
 The core toolchain, however, always comes from the image - for example,
 Docker-outside-of-Docker (the `docker` CLI client plus a bind-mounted host socket) is
 baked into every flavor rather than pulled in via the `docker-outside-of-docker` Feature.
 
-## 🖼️ Images
+## 🐳 Images
 
 > [!NOTE]
 > 📄 **Every flavor below ships a ready-to-use `devcontainer.json` template** under
 > its `<flavor>/.devcontainer/devcontainer.json`. The template wires up the published
 > image with sensible defaults (non-root `developer` user, `Fish` as the default
 > VS Code terminal, persistent `Fish` history & XDG cache volumes, a read-only bind
-> mount of your host `~/.gitconfig`, a tuned `NODE_OPTIONS` heap, and a curated set of
-> VS Code extensions for `.NET`, web, and GitHub workflows). It is intended as a
-> **starting point**: you can freely extend it with any property from the
+> mount of your host `~/.config/git/config`, a tuned `NODE_OPTIONS` heap, and a
+> curated set of VS Code extensions for `.NET`, web, and GitHub workflows). It is
+> intended as a **starting point**: you can freely extend it with any property from the
 > [`devcontainer.json` reference](https://containers.dev/implementors/json_reference/) -
 > additional [`mounts`](https://containers.dev/implementors/json_reference/#mounts)
 > (bind mounts, named volumes, `tmpfs`), extra `forwardPorts`, `postCreateCommand`
@@ -56,10 +56,10 @@ baked into every flavor rather than pulled in via the `docker-outside-of-docker`
 > toolchain itself is intentionally baked into the image at build time, not provisioned
 > via Features** (see [Toolchains](#-toolchains)).
 > You can drop the template straight into a project at `.devcontainer/devcontainer.json` -
-> see [Add a devcontainer template to your project](#4️⃣-add-a-devcontainer-template-to-your-project)
+> see [Add a devcontainer template to your project](#2️⃣-add-a-devcontainer-template-to-your-project)
 > and each flavor's own README for the full breakdown.
 
-### 🐧 OpenSUSE Tumbleweed
+### 🦎 OpenSUSE Tumbleweed
 
 | Metadata              | Value                                                 |
 | --------------------- | ----------------------------------------------------- |
@@ -72,7 +72,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
 - Microsoft package repo: configured for `OpenSUSE` to install `.NET` packages
 - Sensible defaults & toolchains for `.NET` and `Node.js` environments
 
-### 📋 Installed Software
+#### 🧾 Installed Software
 
 - Certificate and `TLS` tooling:
   - `CA certificates`
@@ -80,7 +80,6 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `Curl`
   - `OpenSSL`
   - `GPG` (signing & key management)
-  
 - System and privilege tools:
   - `Sudo`
   - Development toolchain (`patterns-devel-base-devel_basis`)
@@ -104,6 +103,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
   - `ncdu` (disk usage analyzer)
 - Developer `CLI` and editors:
   - `jq`
+  - `awk` (GNU `gawk`)
   - `Neovim`
   - `SQLite`
   - `tree-sitter-cli` (global `npm` install)
@@ -142,7 +142,7 @@ The current image is based on `opensuse/tumbleweed:latest` and includes:
 
 Note: the base image `opensuse/tumbleweed:latest` may include additional preinstalled OS packages not listed above.
 
-### 🐧 OpenSUSE Leap
+### 🦎 OpenSUSE Leap
 
 | Metadata              | Value                                           |
 | --------------------- | ----------------------------------------------- |
@@ -207,7 +207,7 @@ tags built from `main`:
 | ------------------- | --------------------- | ------------------------------------------ |
 | OpenSUSE Tumbleweed | `opensuse-tumbleweed` | `latest`, `YYYY.MM.DD.N` (dated snapshots) |
 | OpenSUSE Leap       | `opensuse-leap`       | `latest`, `16.0`                           |
-| Ubuntu LTS          | `ubuntu`              | `latest`, `26.04`                          |
+| Ubuntu LTS          | `ubuntu-lts`          | `latest`, `26.04`                          |
 
 - **Tumbleweed** uses date-based (`CalVer`) versioning: every `main` build produces a new,
   immutable `YYYY.MM.DD.N` snapshot (e.g. `2026.02.12.1`) and moves `latest` to it.
@@ -226,7 +226,7 @@ To use one of these images in your own repository, copy the relevant flavor's
 `devcontainer.json` template into your project, then authenticate to Docker Hub
 so the image can be pulled.
 
-### ✅ Prerequisites
+### 1️⃣ Prerequisites
 
 - [Visual Studio Code](https://code.visualstudio.com/) with the
   [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
@@ -238,7 +238,8 @@ so the image can be pulled.
 Each flavor ships a ready-to-use `devcontainer.json` example with sensible defaults
 (image reference, non-root `developer` user, `Fish` as the default VS Code terminal,
 persistent `Fish` history & XDG cache volumes, a read-only bind mount of your host
-`~/.gitconfig`, a tuned `NODE_OPTIONS` heap, and a curated set of VS Code extensions).
+`~/.config/git/config`, a tuned `NODE_OPTIONS` heap, and a curated set of VS Code
+extensions).
 Treat it as a **starting point** - extend it with anything from the
 [`devcontainer.json` reference](https://containers.dev/implementors/json_reference/),
 e.g. additional [`mounts`](https://containers.dev/implementors/json_reference/#mounts)
@@ -263,13 +264,13 @@ Copy the template for the flavor you want into your repository at
 > `image` tag (e.g. `docker.io/vkotzsev/ubuntu-lts:26.04`), or pin to an exact commit
 > with the full-SHA tag (e.g. `docker.io/vkotzsev/ubuntu-lts:<40-char-commit-sha>`).
 
-### 5️⃣ Open the project in the container
+### 3️⃣ Open the project in the container
 
 - **VS Code:** open the repository and run **Dev Containers: Reopen in Container** from the
   command palette.
 - **CLI:** run `devcontainer up --workspace-folder .` from the repository root.
 
-### 🧪 Build locally & drive with the devcontainer CLI
+### 🛠️ Build locally & drive with the devcontainer CLI
 
 You don't have to consume the published image - you can build any flavor locally and
 point a project at it. Build from the **repo root** (the `Dockerfile`s `COPY` from
@@ -295,5 +296,5 @@ devcontainer exec --workspace-folder /path/to/your-project -- docker ps
 The CLI has no `stop`/`down` command - tear down the container with Docker directly
 (`docker ps` to find the name, then `docker rm -f <container>`). Each flavor's README has
 the full local-build + CLI walkthrough, including the macOS Docker-outside-of-Docker socket
-caveat (see [🐳 Docker (outside of Docker)](#-docker-outside-of-docker) in the flavor
-READMEs).
+caveat (see [🐳 Docker (outside of Docker)](OpenSUSE/Leap/README.md#-docker-outside-of-docker)
+in the flavor READMEs).

@@ -1,4 +1,4 @@
-# 🐧 OpenSUSE Leap Devcontainer Image
+# 🦎 OpenSUSE Leap Devcontainer Image
 
 This directory contains the `Dockerfile` for a custom general-purpose devcontainer, based on `opensuse/leap:16.0`, alongside a template `devcontainer.json` for use in actual codebases.
 
@@ -15,7 +15,7 @@ out of the box. The template configures:
 - **Shell:** `Fish` set as the default VS Code integrated terminal profile
 - **Persistent state:** named volumes for `Fish` history (`~/.local/share/fish`) and
   the `XDG` cache (`~/.cache`), scoped per `${devcontainerId}`
-- **Git identity:** read-only bind mount of your host `~/.gitconfig`
+- **Git identity:** read-only bind mount of your host `~/.config/git/config`
 - **Env:** `NODE_OPTIONS=--max-old-space-size=4096` for larger Node workloads
 - **Lifecycle:** `shutdownAction: stopContainer` to stop the container when VS Code
   closes
@@ -44,7 +44,7 @@ including:
   baked into the image - see
   [Docker (outside of Docker)](#-docker-outside-of-docker).)
 
-## 🧭 Purpose
+## 🎯 Purpose
 
 This image provides a ready-to-use `Linux` development environment for local testing and for use in standardized team development containers.
 
@@ -81,7 +81,7 @@ What is provisioned at build time (high-level):
   - `Curl`
   - `OpenSSL`
   - `GPG` (signing & key management)
-  
+
 - System and privilege tools:
   - `Sudo`
   - Development toolchain (`patterns-devel-base-devel_basis`)
@@ -140,14 +140,18 @@ What is provisioned at build time (high-level):
   - `OpenCode V2` (global `npm` install of `@opencode/cli`)
   - `Anthropic Claude Code CLI` (global `npm` install)
 
-Note: the base image `opensuse/leap:latest` may include additional preinstalled OS packages not listed above.
+Note: the base image `opensuse/leap:16.0` may include additional preinstalled OS packages not listed above.
 
-## 👤 User & Shell Defaults
+## 🧑‍💻 User & Shell Defaults
 
 - Creates a non-root user: `developer` (configurable via `ARG USERNAME`)
 - Default shell is `Fish`: `/usr/bin/fish`
-- User is added to `wheel` with sudo configuration files under `/etc/sudoers.d`
-- MOTD includes guidance for enabling password-based sudo bootstrap
+- `developer` is added to `wheel` and gets password-based `sudo` via the sudoers
+  fragments under `/etc/sudoers.d`
+- Password bootstrap: `developer` may run `passwd` on itself without a password
+  (`11-passwd-bootstrap`), after which `sudo` unlocks - `00-wheel-auth` rejects
+  root and target-user password authentication, so the account's own password is
+  the only one that works
 
 ## 🔐 Git Credential Manager
 
@@ -288,7 +292,7 @@ cp ./OpenSUSE/Leap/.devcontainer/devcontainer.json /tmp/doo-test/.devcontainer/d
 # edit the copied file so "image" points at opensuse-leap-devbox:local
 ```
 
-### ▶️ Bring it up and verify
+### ✅ Bring it up and verify
 
 ```bash
 devcontainer up --workspace-folder /tmp/doo-test
