@@ -174,19 +174,6 @@ RUN set -eux; \
     ln -s "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim; \
     rm -f /tmp/nvim.tar.gz
 
-## Install the `dotnetup` .NET toolchain manager into /usr/local/bin.
-## NOTE: dotnetup is Microsoft's user-local toolchain manager for .NET SDK &
-## runtimes (the rustup/nvm analog; public preview, no 'stable' dotnetup
-## release exists yet, so the bootstrap script's default 'preview' quality is
-## used). The tool defaults to installing into the invoking user's home and
-## merely printing PATH instructions; mirroring fnm above, we override
-## --install-dir to put the single standalone binary on the system PATH
-## instead. The .NET SDK it manages is provisioned user-locally in a later
-## stage (see below). The script also SHA-512-verifies the downloaded
-## executable.
-## See: https://learn.microsoft.com/dotnet/core/tools/dotnetup/
-RUN curl -fsSL https://aka.ms/dotnetup/get-dotnetup.sh | bash -s -- --install-dir /usr/local/bin
-
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
 ## Create the docker group for Docker-outside-of-Docker and grant the
@@ -232,7 +219,8 @@ RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/.config
 ## NOTE: .NET lives in the dotnetup-managed root at ~/.dotnet (set explicitly
 ## at provisioning time to the conventional dotnet-install.sh location), so
 ## PATH/DOTNET_ROOT point there directly - no dotnetup shell-profile mutation
-## is relied on for bash, fish, VS Code or docker exec to find `dotnet`.
+## is relied on for bash, fish, VS Code or docker exec to find `dotnet`. The
+## dotnetup tool itself is installed to ~/.dotnetup (see the developer stage).
 ENV SHELL=/usr/bin/fish \
     FNM_DIR=/home/${USERNAME}/.local/share/fnm \
     EDITOR=nvim \
@@ -240,13 +228,26 @@ ENV SHELL=/usr/bin/fish \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
     DOTNET_ROOT=/home/${USERNAME}/.dotnet \
     SSL_CERT_DIR=/home/${USERNAME}/.aspnet/dev-certs/trust:/etc/ssl/certs \
-    PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.dotnet:/home/${USERNAME}/.local/bin:${PATH}
+    PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.dotnet:/home/${USERNAME}/.dotnetup:/home/${USERNAME}/.local/bin:${PATH}
 
 ## Set up fnm fallback for bash.
 COPY Ubuntu/LTS/cfg/.bashrc /home/$USERNAME/.bashrc
 RUN chown $USERNAME:$USERNAME /home/$USERNAME/.bashrc
 
 USER $USERNAME
+
+## Install the `dotnetup` .NET toolchain manager into the developer's home
+## (the bootstrap script's documented default, `~/.dotnetup`).
+## NOTE: dotnetup must live in a directory writable by its invoking user - it
+## opens its self-update coordination lock file in its own installation
+## directory (e.g. `/usr/local/bin/dotnetup.activity.lock`), so a root-owned
+## /usr/local/bin install makes every later `dotnetup` command (including the
+## `sdk install` below) fail as the non-root developer account. The ENV PATH
+## entry further down makes the tool reachable. As a public preview there is
+## no 'stable' dotnetup release yet, so the script's default 'preview' quality
+## is used; the script SHA-512-verifies the downloaded executable.
+## See: https://learn.microsoft.com/dotnet/core/tools/dotnetup/
+RUN curl -fsSL https://aka.ms/dotnetup/get-dotnetup.sh | bash -s --
 
 ## Set up the .NET SDK (with its bundled core & ASP.NET Core runtimes) via
 ## `dotnetup`, tracking the `10.0` channel.
@@ -255,7 +256,7 @@ USER $USERNAME
 ## stage runs after `USER`, not as root. An explicit `--install-path` pins the
 ## managed root to ~/.dotnet instead of dotnetup's default, which lives under
 ## its own XDG data dir; the conventional location keeps the image's PATH /
-## DOTNET_ROOT wiring (see above) deterministic and auditable.
+## DOTNET_ROOT wiring (see below) deterministic and auditable.
 ## NOTE: The `10.0` channel is tracked, not pinned: `dotnetup update` inside a
 ## container advances the install within .NET 10, mirroring what
 ## `apt upgrade dotnet-sdk-10.0` did before (exact versions would never move).
