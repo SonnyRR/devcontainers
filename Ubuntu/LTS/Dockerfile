@@ -60,9 +60,9 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
       > /etc/apt/sources.list.d/docker.list
 
 ## Install base developer toolchains.
-## NOTE: On Ubuntu 26.04 the .NET SDK ships in the distro's own apt feed
-## (Microsoft no longer publishes .NET to packages.microsoft.com for Ubuntu),
-## so dotnet-sdk-10.0 is installed straight from apt here.
+## NOTE: .NET is NOT provisioned here - it is managed by `dotnetup` (see the
+## dedicated dotnetup install/provision stages below), which tracks the SDK and
+## its runtimes user-locally without a system package manager.
 ## The lib*/font packages are the headless-browser (Playwright) runtime deps;
 ## the *t64 suffixes are the Ubuntu 26.04+ time_t-transition package names.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -113,7 +113,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       tar \
       gh \
       sqlite3 \
-      dotnet-sdk-10.0 \
       python3 \
       python3.14-venv \
       luajit \
@@ -175,6 +174,19 @@ RUN set -eux; \
     ln -s "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim; \
     rm -f /tmp/nvim.tar.gz
 
+## Install the `dotnetup` .NET toolchain manager into /usr/local/bin.
+## NOTE: dotnetup is Microsoft's user-local toolchain manager for .NET SDK &
+## runtimes (the rustup/nvm analog; public preview, no 'stable' dotnetup
+## release exists yet, so the bootstrap script's default 'preview' quality is
+## used). The tool defaults to installing into the invoking user's home and
+## merely printing PATH instructions; mirroring fnm above, we override
+## --install-dir to put the single standalone binary on the system PATH
+## instead. The .NET SDK it manages is provisioned user-locally in a later
+## stage (see below). The script also SHA-512-verifies the downloaded
+## executable.
+## See: https://learn.microsoft.com/dotnet/core/tools/dotnetup/
+RUN curl -fsSL https://aka.ms/dotnetup/get-dotnetup.sh | bash -s -- --install-dir /usr/local/bin
+
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
 ## Create the docker group for Docker-outside-of-Docker and grant the
@@ -217,19 +229,42 @@ COPY Ubuntu/LTS/cfg/config.fish /home/$USERNAME/.config/fish/config.fish
 RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/.config
 
 ## Environment variables.
+## NOTE: .NET lives in the dotnetup-managed root at ~/.dotnet (set explicitly
+## at provisioning time to the conventional dotnet-install.sh location), so
+## PATH/DOTNET_ROOT point there directly - no dotnetup shell-profile mutation
+## is relied on for bash, fish, VS Code or docker exec to find `dotnet`.
 ENV SHELL=/usr/bin/fish \
     FNM_DIR=/home/${USERNAME}/.local/share/fnm \
     EDITOR=nvim \
     VISUAL=nvim \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
+    DOTNET_ROOT=/home/${USERNAME}/.dotnet \
     SSL_CERT_DIR=/home/${USERNAME}/.aspnet/dev-certs/trust:/etc/ssl/certs \
-    PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.local/bin:${PATH}
+    PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.dotnet:/home/${USERNAME}/.local/bin:${PATH}
 
 ## Set up fnm fallback for bash.
 COPY Ubuntu/LTS/cfg/.bashrc /home/$USERNAME/.bashrc
 RUN chown $USERNAME:$USERNAME /home/$USERNAME/.bashrc
 
 USER $USERNAME
+
+## Set up the .NET SDK (with its bundled core & ASP.NET Core runtimes) via
+## `dotnetup`, tracking the `10.0` channel.
+## NOTE: dotnetup is a non-admin, user-local manager (matching fnm's model for
+## Node) - SDK/runtime files must be owned by the developer account, so this
+## stage runs after `USER`, not as root. An explicit `--install-path` pins the
+## managed root to ~/.dotnet instead of dotnetup's default, which lives under
+## its own XDG data dir; the conventional location keeps the image's PATH /
+## DOTNET_ROOT wiring (see above) deterministic and auditable.
+## NOTE: The `10.0` channel is tracked, not pinned: `dotnetup update` inside a
+## container advances the install within .NET 10, mirroring what
+## `apt upgrade dotnet-sdk-10.0` did before (exact versions would never move).
+## `dotnet dev-certs https` and every subsequent `dotnet` invocation here pick
+## the managed SDK up off PATH. `--no-progress`/`--interactive false` are the
+## documented non-interactive flags; first-use onboarding is disabled anyway
+## in CI or with redirected output.
+## See: https://learn.microsoft.com/dotnet/core/tools/dotnetup/
+RUN dotnetup sdk install 10.0 --install-path /home/$USERNAME/.dotnet --no-progress --interactive false
 
 ## Set up NodeJS (Latest LTS).
 RUN fish -lc 'fnm install --lts; fnm default lts-latest'

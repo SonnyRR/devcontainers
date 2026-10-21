@@ -13,6 +13,11 @@ on:
           - opensuse-tumbleweed
           - opensuse-leap
           - ubuntu-lts
+      test:
+        description: Test build (no image publish, no git tag)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -221,27 +226,69 @@ jobs:
             echo "img_tags=${img_tags}"
             echo "safe_branch=${safe_branch}"
             echo "short_sha=${short_sha}"
+            # Test-mode-only local tag: the image is loaded into the runner's
+            # Docker daemon (push=false) and smoke-tested against this tag.
+            echo "test_tag=${IMAGE_NAME}:test-${short_sha}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Log in to Docker Hub
+        if: ${{ inputs.test != true }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and publish OCI-compatible image
+      - name: Build image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: ${{ steps.meta.outputs.context }}
           file: ${{ steps.meta.outputs.dockerfile_path }}
-          push: true
-          tags: ${{ steps.version.outputs.img_tags }}
+          # Test mode builds into the runner-local Docker daemon only (load=true,
+          # push=false) and uses a throwaway tag; publish mode pushes the full
+          # tag set. Nothing reaches Docker Hub in test mode.
+          push: ${{ inputs.test != true }}
+          load: ${{ inputs.test == true }}
+          tags: ${{ inputs.test == true && steps.version.outputs.test_tag || steps.version.outputs.img_tags }}
+
+      - name: Smoke-test built image (test mode)
+        if: ${{ inputs.test == true }}
+        env:
+          TEST_TAG: ${{ steps.version.outputs.test_tag }}
+        run: |
+          docker run --rm "$TEST_TAG" fish -c 'echo smoke-ok'
+
+      - name: Smoke-test dotnetup .NET provisioning (test mode, ubuntu-lts)
+        if: ${{ inputs.test == true && matrix.flavor == 'ubuntu-lts' }}
+        env:
+          TEST_TAG: ${{ steps.version.outputs.test_tag }}
+        run: |
+          docker run --rm --user developer "$TEST_TAG" bash -ec '
+            echo "== no apt .NET SDK left behind (dotnetup migration) =="
+            if dpkg -s dotnet-sdk-10.0 >/dev/null 2>&1; then
+              echo "FAIL: apt-provisioned dotnet-sdk-10.0 is still installed" >&2
+              exit 1
+            fi
+            echo "== dotnetup tool on PATH =="
+            command -v dotnetup
+            echo "== dotnet SDK resolves from the managed root =="
+            dotnet --version
+            echo "== runtimes (core + ASP.NET Core must be present) =="
+            dotnet --list-runtimes
+            dotnet --list-runtimes | grep -q "ASP.NET Core" || {
+              echo "FAIL: ASP.NET Core runtime is missing" >&2
+              exit 1
+            }
+            echo "== DOTNET_ROOT wiring =="
+            test "$DOTNET_ROOT" = "/home/developer/.dotnet"
+            echo "== dotnetup tracked requirements =="
+            dotnetup list
+          '
 
       - name: Tag git commit with release version
-        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+        if: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && inputs.test != true }}
         shell: bash
         env:
           GIT_TAG: ${{ steps.version.outputs.git_tag }}

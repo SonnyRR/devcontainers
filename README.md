@@ -164,8 +164,9 @@ for the full breakdown.
 A Debian-family variant based on `ubuntu:26.04`, providing the same corporate trust
 setup, toolchains, and developer defaults (`developer` user, `Fish` shell) as the
 images above, and a matching ready-to-use `devcontainer.json` template. Key distribution
-differences: `.NET` is installed from Ubuntu's own apt feed (Microsoft no longer
-publishes `.NET` to `packages.microsoft.com` for Ubuntu), the `Azure CLI` is installed
+differences: `.NET` (SDK & bundled runtimes) is provisioned user-locally via Microsoft's
+[`dotnetup`](https://learn.microsoft.com/dotnet/core/tools/dotnetup/) toolchain manager
+(tracking the `10.0` channel) rather than from a distro feed, the `Azure CLI` is installed
 via Microsoft's maintained installer, and `fnm`/`sops` are pulled as release binaries
 since they are not packaged in apt. See `Ubuntu/LTS/README.md` for the full breakdown.
 
