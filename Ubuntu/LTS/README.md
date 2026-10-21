@@ -76,7 +76,9 @@ Container` is essentially "pull and go".
 
 What is provisioned at build time (high-level):
 
-- `.NET` is installed from Ubuntu's own `apt` feed (Microsoft's package repo is not used)
+- `.NET` (SDK and its bundled core & ASP.NET Core runtimes) is provisioned user-locally
+  via `dotnetup` (Microsoft's toolchain manager), tracking the `10.0` channel - not from
+  a distro/package-manager feed
 - Certificate and `TLS` tooling:
   - `CA certificates`
   - `Curl`
@@ -118,7 +120,7 @@ What is provisioned at build time (high-level):
   - `Poppler` PDF tools (`poppler-utils`)
 - Language and platform toolchains:
   - `Python 3`
-  - `.NET SDK 10.0`
+  - `.NET SDK 10.0` (and runtimes, via `dotnetup`)
   - `Node.js LTS` (via `FNM`)
   - `pnpm` (via `Corepack`)
   - `LuaJIT`
