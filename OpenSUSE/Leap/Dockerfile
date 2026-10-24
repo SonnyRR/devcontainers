@@ -172,6 +172,6 @@ RUN fish -lc 'fnm exec --using lts-latest corepack enable pnpm'
 RUN fish -lc 'dotnet dev-certs https -t'
 
 ## Provision global dotnet tools
-RUN fish -lc 'dotnet tool install -g dotnet-ef && dotnet tool install -g dotnet-outdated-tool && dotnet tool install -g gitversion.tool && dotnet tool install -g nuke.globaltool && dotnet tool install -g ilspycmd && dotnet tool install -g easydotnet && dotnet tool install -g git-credential-manager'
+RUN fish -lc 'dotnet tool install -g dotnet-ef && dotnet tool install -g dotnet-outdated-tool && dotnet tool install -g gitversion.tool && dotnet tool install -g fallout.globaltool && dotnet tool install -g ilspycmd && dotnet tool install -g easydotnet && dotnet tool install -g git-credential-manager'
 
 CMD ["/usr/bin/fish"]
