@@ -10,9 +10,9 @@ FROM ubuntu:26.04
 ARG USERNAME=developer
 ARG DEBIAN_FRONTEND=noninteractive
 
-## Refresh software repositories & install pre-requisites for
+## Refresh software repositories, update packages & install pre-requisites for
 ## SSL certificate management.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       openssl \
