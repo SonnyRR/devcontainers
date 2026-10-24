@@ -63,6 +63,7 @@ RUN zypper -n in --no-recommends \
       openssh \
       gnome-keyring \
       ncdu \
+      btop \
       gpg2 \
       pinentry \
       fish \
