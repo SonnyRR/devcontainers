@@ -270,6 +270,32 @@ Copy the template for the flavor you want into your repository at
   command palette.
 - **CLI:** run `devcontainer up --workspace-folder .` from the repository root.
 
+### 🧪 Testcontainers & the resource reaper (Ryuk)
+
+Repos whose integration tests use [Testcontainers](https://testcontainers.com/) are
+supported out of the box: the DooD wiring is Testcontainers' native "sibling containers"
+pattern, and the resource reaper (Ryuk) stays **enabled** - it is the crash safety net on
+shared devboxes, so nothing here ever disables it. The one documented exception is
+**rootless Podman** (the Podman Desktop default on Windows 11 + WSL), where the engine's
+user-namespace mapping keeps the reaper from operating; upstream recommends disabling it
+there as a per-host decision:
+
+```bash
+export TESTCONTAINERS_RYUK_DISABLED=true
+# or, container-wide for one project, in its devcontainer.json:
+# "remoteEnv": { "TESTCONTAINERS_RYUK_DISABLED": "true" }
+```
+
+Official docs per client: [.NET - Custom configuration](https://dotnet.testcontainers.org/custom_configuration/)
+(and [Running inside a container](https://dotnet.testcontainers.org/dind/) for the
+sibling-container pattern & host overrides),
+[Node.js - Configuration](https://node.testcontainers.org/configuration/) &
+[Supported container runtimes](https://node.testcontainers.org/supported-container-runtimes/),
+[Java - Supported Docker Environments](https://java.testcontainers.org/supported_docker_environment/).
+The flavor READMEs' [🐳 Docker (outside of Docker)](OpenSUSE/Leap/README.md#-docker-outside-of-docker)
+sections cover the details - socket access and the engine-aware
+`~/.testcontainers.properties` host override for `.NET`.
+
 ### 🛠️ Build locally & drive with the devcontainer CLI
 
 You don't have to consume the published image - you can build any flavor locally and

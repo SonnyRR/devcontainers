@@ -242,6 +242,53 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 > `/run/user/<uid>/podman/podman.sock`), adjust the `source` of the socket mount above
 > accordingly.
 
+### 🧪 Testcontainers & the resource reaper (Ryuk)
+
+Repos using [Testcontainers](https://testcontainers.com/) for `.NET`/`Node.js`
+integration tests are first-class citizens: this DooD setup is the pattern Testcontainers
+supports natively ("sibling containers" / Docker wormhole). The resource reaper (Ryuk)
+stays **enabled** - it needs only a writable engine socket (which the helper above grants)
+and a reachable host for the published ports (which the engine-aware
+`~/.testcontainers.properties` entry from the note above provides). It doubles as the
+crash safety net: if a test process dies mid-run, the reaper still cleans up the labelled
+containers, networks & volumes. Nothing here ever disables it silently.
+
+| Host engine                                                     | Resource reaper (Ryuk) |
+| --------------------------------------------------------------- | ---------------------- |
+| Docker Engine (Linux, incl. shared DevBoxes), rootful           | ✅ works as is         |
+| Docker Desktop (macOS / Windows + WSL2), OrbStack               | ✅ works as is         |
+| Podman rootful                                                  | ✅ works (some clients accept `TESTCONTAINERS_RYUK_PRIVILEGED=true`; see the per-client docs) |
+| Podman **rootless** (Podman Desktop default on Windows 11 + WSL) | ⚠️ disable it - upstream limitation, documented per client below |
+
+Why rootless Podman is the odd one out: there the engine and its containers run inside a
+user-namespace mapping, which keeps the reaper from operating. Every Testcontainers
+runtime's own supported-environment docs therefore tell you to disable it on such hosts.
+That is a per-environment decision, so it is left to each repository consumer:
+
+```bash
+export TESTCONTAINERS_RYUK_DISABLED=true
+```
+
+or, container-wide for one project, via that project's devcontainer template:
+
+```json
+"remoteEnv": { "TESTCONTAINERS_RYUK_DISABLED": "true" }
+```
+
+Official documentation (each client reads the same `TESTCONTAINERS_RYUK_DISABLED=true`):
+
+- `.NET` - [Custom configuration](https://dotnet.testcontainers.org/custom_configuration/)
+  (`TESTCONTAINERS_RYUK_DISABLED` env or `ryuk.disabled=true` in
+  `~/.testcontainers.properties`) & [Running inside a container](https://dotnet.testcontainers.org/dind/)
+  (the sibling-container pattern, incl. the Docker Desktop
+  `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` note).
+- `Node.js` - [Configuration](https://node.testcontainers.org/configuration/)
+  (the `TESTCONTAINERS_RYUK_*` variables) & [Supported container runtimes](https://node.testcontainers.org/supported-container-runtimes/)
+  (the Podman "rootless -> disable the reaper" note).
+- `Java` - [Supported Docker Environments](https://java.testcontainers.org/supported_docker_environment/)
+  ("General Container runtime requirements > Podman": rootless ->
+  `TESTCONTAINERS_RYUK_DISABLED=true`).
+
 If you previously added the `ghcr.io/devcontainers/features/docker-outside-of-docker`
 Feature, you no longer need it - the equivalent capability is now part of the base image.
 
