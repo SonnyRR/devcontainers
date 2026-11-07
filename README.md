@@ -23,8 +23,9 @@ This is intentional. Baking the toolchain into the build phase gives us:
   is ready as soon as it's pulled.
 - **Single auditable supply chain.** Every install command, package version, signing
   key, and trust root lives in the `Dockerfile` in this repo, is reviewed via PR, and
-  is built and scanned in CI. No opaque per-feature install scripts run on the
-  developer's machine.
+  is built, vulnerability-scanned, and auto-patched in CI (see
+  [Security scanning & patching](#-security-scanning--patching)). No opaque
+  per-feature install scripts run on the developer's machine.
 - **Version pinning via the image tag**, not via a moving Feature version.
 
 Devcontainer Features remain a perfectly valid escape hatch for **project-specific
@@ -217,8 +218,43 @@ tags built from `main`:
   commit SHA, letting you pin an image to the exact commit it was built from.
 - Builds from non-`main` branches publish pre-release tags instead of the above:
   `beta-<version>-<short-sha>`, `beta-<branch>-<short-sha>`, and `beta-<branch>-latest`.
+- Only the immutable full-SHA tag is published at build time; the stable/beta tags are
+  applied **after** the CI security gate passes (see
+  [Security scanning & patching](#-security-scanning--patching)).
 
 See each flavor's README for its specific tags.
+
+## 🛡️ Security scanning & patching
+
+Every published image is scanned and remediated automatically in CI — releases are
+gated on the result:
+
+- **Scan.** Each build is scanned with
+  [Trivy](https://github.com/aquasecurity/trivy), pinned to a fixed version. The full
+  vulnerability scan is uploaded to GitHub's **code scanning** tab, and a second scan
+  collects **fixable OS-package vulnerabilities** (the only class that can be patched
+  in place).
+- **Patch.** If fixable OS-package vulnerabilities are found,
+  [Copacetic](https://github.com/project-copacetic/copacetic) (`copa`) patches the
+  image **without a full rebuild** — it applies a lightweight layer on top of the
+  existing image via the flavor's package manager (`zypper`, `dnf`, or `apt`) that
+  upgrades exactly the vulnerable packages from the scan report, and pushes the
+  result alongside the original. A record of what was remediated is emitted as an
+  [OpenVEX](https://github.com/openvex/spec) artifact.
+- **Verify & gate.** The final image (patched or already-clean) is re-scanned before
+  release. If fixable `HIGH`/`CRITICAL` OS-package vulnerabilities remain (e.g. no fix
+  was published upstream yet), the release tags are **not** updated and the git
+  release tag is never created — so `latest` and the version tags always point to an
+  image that passed the gate.
+- **Pin safely.** The full-SHA tag always exists and refers to the original build,
+  regardless of the gate outcome, so an exact build can always be referenced even when
+  a release is blocked.
+
+Unfixable vulnerabilities (`ignore-unfixed` results from the upstream base image) are
+tracked in code scanning but never block releases, since they cannot be remediated
+here. Tooling/language-level findings (e.g. `npm` or `.NET` packages) are likewise
+visible but out of scope for `copa` - the fix is upgrading them in the `Dockerfile`,
+which drives the next build.
 
 ## 🚀 Using the Devcontainers
 
