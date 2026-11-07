@@ -17,6 +17,11 @@ on:
 permissions:
   contents: read
 
+# Single source of truth for the Trivy scanner version used by every scan
+# step (SARIF scan, Copa report scan, verify gate).
+env:
+  TRIVY_VERSION: 0.76.2
+
 concurrency:
   group: ${{ github.workflow }} @ ${{ github.ref_name }}
   cancel-in-progress: true
@@ -283,7 +288,8 @@ jobs:
           scanners: vuln
           # Pin the scanner version explicitly rather than riding the action's
           # per-release default; setup-trivy then caches the binary too.
-          version: 0.76.2
+          # TRIVY_VERSION (workflow-level env) is the single source of truth.
+          version: ${{ env.TRIVY_VERSION }}
 
       - name: Upload SARIF results to GitHub Code Scanning
         # continue-on-error: code scanning upload requires GitHub Advanced
@@ -309,7 +315,7 @@ jobs:
           # Fixable-only: unfixed findings are upstream/base-image issues that
           # cannot be remediated here; gate policy excludes them.
           ignore-unfixed: true
-          version: 0.76.2
+          version: ${{ env.TRIVY_VERSION }}
 
       - name: Count fixable OS-package vulnerabilities
         id: vulns
@@ -383,7 +389,7 @@ jobs:
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           exit-code: '1'
-          version: 0.76.2
+          version: ${{ env.TRIVY_VERSION }}
 
       - name: Promote release/beta tags to final image
         shell: bash
