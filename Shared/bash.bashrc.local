@@ -1,9 +1,10 @@
 # ---------------------------------------------------------------------------------------
 # Devcontainer defaults for bash (system-wide).
 # ---------------------------------------------------------------------------------------
-# Installed to /etc/bash.bashrc.local (sourced by openSUSE's /etc/bash.bashrc) so
-# ~/.bashrc stays free for personal dotfiles that follow the XDG Base Directory spec.
-# ~/.bashrc runs after this file, so dotfiles can override anything set here.
+# Installed to /etc/bash.bashrc.local so ~/.bashrc stays free for personal dotfiles that
+# follow the XDG Base Directory spec (each flavor's Dockerfile documents how it is hooked
+# into /etc/bash.bashrc). ~/.bashrc runs after this file, so dotfiles can override
+# anything set here.
 # NOTE: Static environment variables (EDITOR, VISUAL, FNM_DIR, XDG_*, ...) are set once,
 # as Dockerfile ENV, so every process inherits them & projects can override them via
 # devcontainer.json. Only what has to be evaluated per shell at runtime lives here.

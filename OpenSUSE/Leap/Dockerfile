@@ -160,9 +160,9 @@ RUN mkdir -p /run/tmux && chmod 1777 /run/tmux
 ## the XDG Base Directory spec. Dotfiles can override all of it: ~/.config/fish/config.fish
 ## & ~/.bashrc run afterwards, & ~/.config/fish/functions takes precedence over
 ## /etc/fish/functions.
-COPY OpenSUSE/Leap/cfg/fish/conf.d/ /etc/fish/conf.d/
+COPY Shared/fish/conf.d/ /etc/fish/conf.d/
 COPY Shared/fish/functions/ /etc/fish/functions/
-COPY OpenSUSE/Shared/bash.bashrc.local /etc/bash.bashrc.local
+COPY Shared/bash.bashrc.local /etc/bash.bashrc.local
 
 ## Environment variables.
 ## NOTE: This is the single source of truth for static environment variables. ENV is

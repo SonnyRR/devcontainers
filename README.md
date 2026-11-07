@@ -273,7 +273,7 @@ Copy the template for the flavor you want into your repository at
 
 You don't have to consume the published image - you can build any flavor locally and
 point a project at it. Build from the **repo root** (the `Dockerfile`s `COPY` from
-`<flavor>/cfg/...`, so the build context must be the repository root):
+`Shared/...`, so the build context must be the repository root):
 
 ```bash
 docker buildx build --load --platform linux/amd64 -t ubuntu-lts-devbox:local -f ./Ubuntu/LTS/Dockerfile .

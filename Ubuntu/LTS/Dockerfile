@@ -231,9 +231,9 @@ RUN mkdir -p \
 ## & ~/.bashrc run afterwards, & ~/.config/fish/functions takes precedence over
 ## /etc/fish/functions. Unlike openSUSE, Ubuntu's /etc/bash.bashrc has no hook for a
 ## .local file, so one is appended.
-COPY Ubuntu/LTS/cfg/fish/conf.d/ /etc/fish/conf.d/
+COPY Shared/fish/conf.d/ /etc/fish/conf.d/
 COPY Shared/fish/functions/ /etc/fish/functions/
-COPY Ubuntu/LTS/cfg/bash.bashrc.local /etc/bash.bashrc.local
+COPY Shared/bash.bashrc.local /etc/bash.bashrc.local
 RUN printf '\n%s\n' '[ -r /etc/bash.bashrc.local ] && . /etc/bash.bashrc.local' >> /etc/bash.bashrc
 
 ## Environment variables.

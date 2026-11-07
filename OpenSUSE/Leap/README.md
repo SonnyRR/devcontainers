@@ -231,7 +231,7 @@ Feature, you no longer need it - the equivalent capability is now part of the ba
 
 ## 🛠️ Build Locally
 
-Build from the **repo root** - the `Dockerfile`s `COPY` from `OpenSUSE/Leap/cfg/...`, so the
+Build from the **repo root** - the `Dockerfile`s `COPY` from `Shared/...`, so the
 build context must be the repository root, not the flavor directory:
 
 ```bash
@@ -276,7 +276,7 @@ npm install -g @devcontainers/cli   # or: npx -y @devcontainers/cli
 ### 🔨 Build the image locally (optional)
 
 The published image is normally pulled from Docker Hub, but to build and test a change
-locally, run from the **repo root** (the `Dockerfile` `COPY`s from `OpenSUSE/Leap/cfg/...`,
+locally, run from the **repo root** (the `Dockerfile` `COPY`s from `Shared/...`,
 so the build context must be the repository root):
 
 ```bash
