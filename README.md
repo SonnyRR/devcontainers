@@ -42,7 +42,8 @@ baked into every flavor rather than pulled in via the `docker-outside-of-docker`
 > image with sensible defaults (non-root `developer` user, `Fish` as the default
 > VS Code terminal, persistent `Fish` history & XDG cache volumes plus shared
 > logins/caches volumes (Claude Code, GitHub CLI, Azure CLI, NuGet, npm),
-> Docker-outside-of-Docker wiring, a tuned `NODE_OPTIONS` heap, and a
+> Docker-outside-of-Docker wiring with engine-aware `Testcontainers` host overrides, a
+> tuned `NODE_OPTIONS` heap, and a
 > curated set of VS Code extensions for `.NET`, web, and GitHub workflows). It is
 > intended as a **starting point**: you can freely extend it with any property from the
 > [`devcontainer.json` reference](https://containers.dev/implementors/json_reference/) -

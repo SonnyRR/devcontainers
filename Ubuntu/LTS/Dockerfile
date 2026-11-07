@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------
 # Description : General-purpose Ubuntu-based devcontainer image tailored for .NET/NodeJS ecosystems
 # Author      : Vasil Kotsev
-# Updated     : 2026-11-06
+# Updated     : 2026-11-07
 # ---------------------------------------------------------------------------------------
 FROM ubuntu:26.04
 

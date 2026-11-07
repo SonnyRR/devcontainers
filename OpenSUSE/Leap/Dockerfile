@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------------------
 # Description : OpenSUSE Leap based devcontainer image tailored for .NET/NodeJS ecosystems
 # Author      : Vasil Kotsev
-# Updated     : 2026-11-06
+# Updated     : 2026-11-07
 # ----------------------------------------------------------------------------------------
 FROM opensuse/leap:16.0
 

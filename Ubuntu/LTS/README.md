@@ -229,6 +229,19 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 > re-applies it on every container start. Rootless Podman sockets land in the same code
 > path.
 
+> [!NOTE]
+> **Podman hosts (e.g. Windows 11 + WSL + Podman Desktop forwarding the engine to the
+> Docker CLI):** the helper detects the engine flavor via the daemon API and, when the
+> container can resolve it, writes `host.override=host.containers.internal` into
+> `~/.testcontainers.properties` (Podman's equivalent of `host.docker.internal`). That
+> is what the `.NET` Testcontainers client needs to reach the ports of sibling
+> containers; the Node & Java clients auto-detect the host and simply ignore the extra
+> key. Docker Desktop / OrbStack hosts get `host.docker.internal` the same way, while a
+> bare Linux Docker Engine gets nothing (its DNS name would not resolve). If your
+> engine socket lives at a non-default host path (e.g. rootless Podman at
+> `/run/user/<uid>/podman/podman.sock`), adjust the `source` of the socket mount above
+> accordingly.
+
 If you previously added the `ghcr.io/devcontainers/features/docker-outside-of-docker`
 Feature, you no longer need it - the equivalent capability is now part of the base image.
 
