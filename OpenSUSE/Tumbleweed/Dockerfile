@@ -132,13 +132,21 @@ RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
     printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/docker-socket-init.sh" > /etc/sudoers.d/12-docker-socket-init && \
     chmod 0440 /etc/sudoers.d/12-docker-socket-init
 
-## Pre-create GCM's credential store directory.
-## NOTE: Docker seeds a fresh named volume from the image path. If the path does
-## not exist, the volume is created `root`-owned and GCM - which refuses to widen
-## permissions on an existing store - cannot use it. Pre-creating it here means a
-## user who adds a volume for /home/developer/.gcm gets a correctly-owned store.
-RUN mkdir -p /home/$USERNAME/.gcm && \
-    chown $USERNAME:$USERNAME /home/$USERNAME/.gcm
+## Pre-create the targets of the named volumes mounted by the devcontainer.json
+## template, including GCM's credential store.
+## NOTE: Docker seeds a fresh named volume from the image path, so a missing path
+## would yield a root-owned volume the user cannot write to - GCM in particular
+## refuses to widen permissions on an existing store.
+RUN mkdir -p \
+      /home/$USERNAME/.cache \
+      /home/$USERNAME/.local/share/fish \
+      /home/$USERNAME/.claude \
+      /home/$USERNAME/.config/gh \
+      /home/$USERNAME/.azure \
+      /home/$USERNAME/.gcm \
+      /home/$USERNAME/.nuget/packages \
+      /home/$USERNAME/.npm && \
+    chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 ## Set up sensible defaults for the fish terminal.
 RUN mkdir -p /home/$USERNAME/.config/fish
