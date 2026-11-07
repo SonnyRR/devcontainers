@@ -281,6 +281,9 @@ jobs:
           format: sarif
           output: trivy-full.sarif
           scanners: vuln
+          # Pin the scanner version explicitly rather than riding the action's
+          # per-release default; setup-trivy then caches the binary too.
+          version: 0.76.2
 
       - name: Upload SARIF results to GitHub Code Scanning
         # continue-on-error: code scanning upload requires GitHub Advanced
@@ -306,6 +309,7 @@ jobs:
           # Fixable-only: unfixed findings are upstream/base-image issues that
           # cannot be remediated here; gate policy excludes them.
           ignore-unfixed: true
+          version: 0.76.2
 
       - name: Count fixable OS-package vulnerabilities
         id: vulns
@@ -379,6 +383,7 @@ jobs:
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           exit-code: '1'
+          version: 0.76.2
 
       - name: Promote release/beta tags to final image
         shell: bash
