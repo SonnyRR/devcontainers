@@ -237,11 +237,21 @@ COPY Ubuntu/LTS/cfg/bash.bashrc.local /etc/bash.bashrc.local
 RUN printf '\n%s\n' '[ -r /etc/bash.bashrc.local ] && . /etc/bash.bashrc.local' >> /etc/bash.bashrc
 
 ## Environment variables.
+## NOTE: This is the single source of truth for static environment variables. ENV is
+## inherited by every process (VS Code terminals, tasks, debuggers, docker exec), so
+## the shell configs above only hold what must be evaluated per shell at runtime.
+## Projects can override any of these via remoteEnv/containerEnv in devcontainer.json,
+## & dotfiles via ~/.config/fish/config.fish or ~/.bashrc.
 ENV SHELL=/usr/bin/fish \
     FNM_DIR=/home/${USERNAME}/.local/share/fnm \
     EDITOR=nvim \
     VISUAL=nvim \
+    XDG_CONFIG_HOME=/home/${USERNAME}/.config \
+    XDG_DATA_HOME=/home/${USERNAME}/.local/share \
+    XDG_STATE_HOME=/home/${USERNAME}/.local/state \
+    XDG_CACHE_HOME=/home/${USERNAME}/.cache \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
+    CLAUDE_CONFIG_DIR=/home/${USERNAME}/.claude \
     SSL_CERT_DIR=/home/${USERNAME}/.aspnet/dev-certs/trust:/etc/ssl/certs \
     PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.local/bin:${PATH}
 
