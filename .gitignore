@@ -18,9 +18,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local environment/config overrides
+# (except the tracked bash.bashrc.local shell-default files baked into the images)
 .env
 .env.*
 *.local
+!**/bash.bashrc.local
 
 # Temp files
 tmp/

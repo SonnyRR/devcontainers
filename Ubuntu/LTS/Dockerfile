@@ -224,10 +224,17 @@ RUN mkdir -p \
       /home/$USERNAME/.npm && \
     chown -R $USERNAME:$USERNAME /home/$USERNAME
 
-## Set up sensible defaults for the fish terminal.
-RUN mkdir -p /home/$USERNAME/.config/fish
-COPY Ubuntu/LTS/cfg/config.fish /home/$USERNAME/.config/fish/config.fish
-RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/.config
+## Set up system-wide shell defaults.
+## NOTE: These live in /etc (fish conf.d & functions, /etc/bash.bashrc.local) rather than
+## the user's home, so ~/.config & ~/.bashrc stay free for personal dotfiles following
+## the XDG Base Directory spec. Dotfiles can override all of it: ~/.config/fish/config.fish
+## & ~/.bashrc run afterwards, & ~/.config/fish/functions takes precedence over
+## /etc/fish/functions. Unlike openSUSE, Ubuntu's /etc/bash.bashrc has no hook for a
+## .local file, so one is appended.
+COPY Ubuntu/LTS/cfg/fish/conf.d/ /etc/fish/conf.d/
+COPY Shared/fish/functions/ /etc/fish/functions/
+COPY Ubuntu/LTS/cfg/bash.bashrc.local /etc/bash.bashrc.local
+RUN printf '\n%s\n' '[ -r /etc/bash.bashrc.local ] && . /etc/bash.bashrc.local' >> /etc/bash.bashrc
 
 ## Environment variables.
 ENV SHELL=/usr/bin/fish \
@@ -237,10 +244,6 @@ ENV SHELL=/usr/bin/fish \
     DOTNET_CLI_TELEMETRY_OPTOUT=true \
     SSL_CERT_DIR=/home/${USERNAME}/.aspnet/dev-certs/trust:/etc/ssl/certs \
     PATH=/home/${USERNAME}/.dotnet/tools:/home/${USERNAME}/.local/bin:${PATH}
-
-## Set up fnm fallback for bash.
-COPY Ubuntu/LTS/cfg/.bashrc /home/$USERNAME/.bashrc
-RUN chown $USERNAME:$USERNAME /home/$USERNAME/.bashrc
 
 USER $USERNAME
 

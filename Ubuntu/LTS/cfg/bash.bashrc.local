@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------------------
+# Devcontainer defaults for bash (system-wide).
+# ---------------------------------------------------------------------------------------
+# Installed to /etc/bash.bashrc.local (sourced from /etc/bash.bashrc via a hook appended
+# at build time) so ~/.bashrc stays free for personal dotfiles that follow the XDG Base
+# Directory spec. ~/.bashrc runs after this file, so dotfiles can override anything set
+# here.
+# NOTE: Static environment variables (EDITOR, VISUAL, FNM_DIR, XDG_*, ...) are set once,
+# as Dockerfile ENV, so every process inherits them & projects can override them via
+# devcontainer.json. Only what has to be evaluated per shell at runtime lives here.
+# ---------------------------------------------------------------------------------------
+if [[ $- == *i* ]]; then
+  # Switch the NodeJS version on cd, based on .nvmrc/.node-version files.
+  if command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env --use-on-cd --shell bash)"
+  fi
+
+  # DooD: Podman cannot serve buildx's BuildKit drivers, so fall back to the
+  # classic builder when the mounted socket belongs to Podman.
+  if [[ -w /var/run/docker.sock && -z "${DOCKER_BUILDKIT+x}" ]] &&
+    curl -s --max-time 1 --unix-socket /var/run/docker.sock http://localhost/version 2>/dev/null | grep -q 'Podman Engine'; then
+    export DOCKER_BUILDKIT=0
+  fi
+fi
