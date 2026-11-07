@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------
 # Description : General-purpose devcontainer image tailored for .NET/NodeJS ecosystems
 # Author      : Vasil Kotsev
-# Updated     : 2026-10-05
+# Updated     : 2026-11-06
 # ---------------------------------------------------------------------------------------
 FROM opensuse/tumbleweed:latest
 
