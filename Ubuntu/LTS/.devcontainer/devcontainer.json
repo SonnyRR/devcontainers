@@ -10,7 +10,12 @@
     "source=dev-ubuntu-xdg-cache-${devcontainerId},target=/home/developer/.cache,type=volume",
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
-  "postCreateCommand": "sudo /usr/local/bin/docker-socket-init.sh",
+  "init": true,
+  "onCreateCommand": "sudo /usr/local/bin/docker-socket-init.sh",
+  "postStartCommand": "sudo /usr/local/bin/docker-socket-init.sh",
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  },
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },

@@ -114,6 +114,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       gh \
       sqlite3 \
       dotnet-sdk-10.0 \
+      acl \
       python3 \
       python3.14-venv \
       luajit \
@@ -127,11 +128,12 @@ RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb -o /tmp/install-azure-cli.sh &&
     bash /tmp/install-azure-cli.sh && \
     rm -f /tmp/install-azure-cli.sh
 
-## Install the Docker CLI client + compose plugin (Docker-outside-of-Docker).
-## NOTE: Only the CLI is installed; the Docker daemon runs on the host and the
+## Install the Docker CLI client + compose + buildx plugins (Docker-outside-of-Docker).
+## NOTE: Only the client side is installed; the Docker daemon runs on the host and the
 ## socket is bind-mounted into the container at devcontainer-create time.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       docker-ce-cli \
+      docker-buildx-plugin \
       docker-compose-plugin \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -177,9 +179,10 @@ RUN set -eux; \
 
 RUN useradd -m -s /usr/bin/fish "$USERNAME"
 
-## Create the docker group for Docker-outside-of-Docker and grant the
-## developer user access; the in-container GID is aligned to the mounted
-## host socket at devcontainer-create time (see docker-socket-init.sh).
+## Create the docker group for Docker-outside-of-Docker and grant the developer
+## user access; the runtime helper (see docker-socket-init.sh) re-applies it at
+## devcontainer create & start, preferring this group for socket GID alignment
+## and using an ACL when the socket is owned by GID 0.
 RUN getent group docker >/dev/null || groupadd docker && \
     usermod -aG docker "$USERNAME"
 
@@ -194,10 +197,12 @@ RUN getent group wheel >/dev/null || groupadd wheel && \
     chmod 0440 /etc/sudoers.d/11-passwd-bootstrap && \
     chmod 0440 /etc/sudoers.d/10-wheel-passwd
 
-## Install the Docker-outside-of-Docker socket GID alignment helper and
-## allow the developer user to run it without a password (mirrors the
-## passwd-bootstrap NOPASSWD rule). See: Ubuntu/LTS/cfg/docker-socket-init.sh
-COPY Ubuntu/LTS/cfg/docker-socket-init.sh /usr/local/bin/docker-socket-init.sh
+## Run the Docker-outside-of-Docker socket access helper and allow the developer
+## user to run it without a password (mirrors the passwd-bootstrap NOPASSWD rule).
+## NOTE: acl is required by the helper for GID-0 sockets (macOS Docker
+## Desktop/OrbStack & rootless Podman).
+## See: Shared/docker-socket-init.sh
+COPY Shared/docker-socket-init.sh /usr/local/bin/docker-socket-init.sh
 RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
     chown root:root /usr/local/bin/docker-socket-init.sh && \
     printf '%s\n' "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/docker-socket-init.sh" > /etc/sudoers.d/12-docker-socket-init && \
