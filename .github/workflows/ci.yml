@@ -19,8 +19,12 @@ permissions:
 
 # Single source of truth for the Trivy scanner version used by every scan
 # step (SARIF scan, Copa report scan, verify gate).
+# Note: must include the leading "v" — it is passed verbatim to Trivy's
+# contrib/install.sh via setup-trivy, which loads
+# github.com/aquasecurity/trivy/releases/<version> and fails with
+# "unable to find '...'" when the tag does not exist verbatim.
 env:
-  TRIVY_VERSION: 0.76.2
+  TRIVY_VERSION: v0.76.2
 
 concurrency:
   group: ${{ github.workflow }} @ ${{ github.ref_name }}
