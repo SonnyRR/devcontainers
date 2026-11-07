@@ -16,8 +16,11 @@ out of the box. The template configures:
 - **User:** runs as the non-root `developer` account
 - **Shell:** `Fish` set as the default VS Code integrated terminal profile
 - **Persistent state:** named volumes for `Fish` history (`~/.local/share/fish`) and
-  the `XDG` cache (`~/.cache`), scoped per `${devcontainerId}`
-- **Git identity:** read-only bind mount of your host `~/.config/git/config`
+  the `XDG` cache (`~/.cache`), scoped per `${localWorkspaceFolderBasename}`, plus shared
+  volumes for Claude Code (`~/.claude`), GitHub CLI (`~/.config/gh`), Azure CLI
+  (`~/.azure`), NuGet packages (`~/.nuget/packages`) & the npm cache (`~/.npm`)
+- **Git identity:** nothing is mounted - VS Code copies the host git config into the
+  container at create time
 - **Env:** `NODE_OPTIONS=--max-old-space-size=4096` for larger Node workloads
 - **Lifecycle:** `shutdownAction: stopContainer` to stop the container when VS Code
   closes
@@ -31,8 +34,8 @@ from the [`devcontainer.json` reference](https://containers.dev/implementors/jso
 including:
 
 - Additional [`mounts`](https://containers.dev/implementors/json_reference/#mounts) -
-  extra bind mounts (e.g. `~/.ssh`, `~/.azure`), named volumes for build caches
-  (`node_modules`, `~/.nuget/packages`), or `tmpfs` mounts for ephemeral data
+  extra bind mounts (e.g. `~/.ssh`), named volumes for build caches (`node_modules`),
+  or `tmpfs` mounts for ephemeral data
 - `forwardPorts` / `portsAttributes` for app ports
 - Lifecycle hooks: `postCreateCommand`, `postStartCommand`, `postAttachCommand`,
   `onCreateCommand`, `initializeCommand`, `updateContentCommand`
@@ -159,7 +162,8 @@ Note: the base image `opensuse/tumbleweed:latest` may include additional preinst
 
 [Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
 (GCM) is installed as a global `.NET` tool. The image configures nothing itself - add
-this to your own `~/.config/git/config`, which the template bind-mounts read-only:
+this to your own `~/.config/git/config` (VS Code copies the host git config into the
+container at create time; nothing is bind-mounted):
 
 ```ini
 [credential]
@@ -189,13 +193,15 @@ or "DooD") - there is no separate in-container daemon and no `privileged` mode r
 Everything is baked into the image at build time; no Dev Container Feature is used:
 
 - The Docker CLI client is installed from the distribution's own signed repositories
-  (`docker` + `docker-compose` from the openSUSE repos).
+  (`docker` + `docker-compose` + `docker-buildx` - plus `acl` for the socket ACL - from
+  the openSUSE repos).
 - A `docker` group is created and the `developer` user is added to it.
-- Because the host socket's group GID is only known at runtime, the helper
+- Because the host socket's owner is only known at runtime, the helper
   `/usr/local/bin/docker-socket-init.sh` (executed as root via a dedicated NOPASSWD
-  sudoers rule, `12-docker-socket-init`) aligns the in-container `docker` group GID to
-  the mounted socket at container-create time. It is a safe no-op when the socket is
-  not present.
+  sudoers rule, `12-docker-socket-init`) grants the `developer` user read/write access
+  to the socket. It runs at container create **and** every start, is idempotent, and is
+  a safe no-op when the socket is not mounted. How access is granted depends on the
+  socket's owner (see the note below).
 
 To enable it, bind-mount the host Docker socket into the container. The bundled
 `devcontainer.json` already does this for you:
@@ -204,7 +210,8 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 "mounts": [
   "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
 ],
-"postCreateCommand": "sudo /usr/local/bin/docker-socket-init.sh"
+"onCreateCommand": "sudo /usr/local/bin/docker-socket-init.sh",
+"postStartCommand": "sudo /usr/local/bin/docker-socket-init.sh"
 ```
 
 > [!NOTE]
@@ -213,10 +220,13 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 > Docker networks and publish ports directly on the host.
 
 > [!NOTE]
-> **macOS hosts:** Docker Desktop exposes the socket as `root:root` (GID `0`), which maps
-> to the container's `root` group. The init helper therefore adds the `developer` user to
-> the `root` *group* (not uid `0`) so it can reach the socket. This is expected for
-> Docker-outside-of-Docker on macOS and only grants group-level access to the socket.
+> **macOS hosts:** Docker Desktop / OrbStack expose the socket as `root:root` (GID `0`),
+> which would otherwise require adding the `developer` user to the container's `root`
+> group. The helper instead grants a POSIX `ACL` (`setfacl`) on the socket itself, so
+> nothing else moves and access never widens beyond the socket. Because the ACL lives on
+> the socket inode - and the engine recreates the socket when it restarts - the helper
+> re-applies it on every container start. Rootless Podman sockets land in the same code
+> path.
 
 If you previously added the `ghcr.io/devcontainers/features/docker-outside-of-docker`
 Feature, you no longer need it - the equivalent capability is now part of the base image.
@@ -242,7 +252,9 @@ docker run --rm -it --user developer opensuse-devbox:local
 ```
 
 To try Docker-outside-of-Docker manually, bind-mount the host socket and run the init
-helper. A **fresh shell** is needed afterwards so the new group membership takes effect:
+helper. On hosts whose socket is owned by GID `0` (macOS Docker Desktop / OrbStack &
+rootless Podman) the ACL grant applies immediately. On rootful Docker hosts the group
+alignment only affects **new login sessions**, hence `newgrp`/`sg`:
 
 ```bash
 docker run --rm -it \
@@ -250,7 +262,7 @@ docker run --rm -it \
   opensuse-devbox:local
 # inside:
 sudo /usr/local/bin/docker-socket-init.sh
-newgrp root   # or: sg root -c 'docker ps'
+newgrp docker   # only needed on rootful-Docker hosts; or: sg docker -c 'docker ps'
 docker ps
 ```
 
@@ -302,13 +314,15 @@ devcontainer exec --workspace-folder /tmp/doo-test -- docker version
 devcontainer exec --workspace-folder /tmp/doo-test -- docker ps
 ```
 
-The `postCreateCommand` (`sudo /usr/local/bin/docker-socket-init.sh`) aligns the
-in-container group to the mounted host socket, so `docker` works without `sudo` in any
-`exec`/terminal session opened afterwards. On macOS the host socket is `root:root` (GID
-`0`), so the helper adds `developer` to the `root` *group* (see
-[Docker (outside of Docker)](#-docker-outside-of-docker)). If a long-running shell
-started before `postCreateCommand` still reports a permission error, open a fresh
-`devcontainer exec` session or run `newgrp root` / `sg root -c 'docker ps'`.
+The `onCreateCommand` & `postStartCommand` (`sudo /usr/local/bin/docker-socket-init.sh`)
+grant the `developer` user access to the mounted host socket, so `docker` works without
+`sudo` in any `exec`/terminal session. On macOS the host socket is `root:root` (GID
+`0`), so the helper applies a POSIX `ACL` on the socket (see
+[Docker (outside of Docker)](#-docker-outside-of-docker)) - ACLs are honoured
+dynamically, so already-running terminals gain access right away. On rootful Docker
+hosts the helper aligns the in-container group to the socket GID, which only applies to
+new login sessions - open a fresh `devcontainer exec` session or run
+`newgrp docker` / `sg docker -c 'docker ps'`.
 
 ### 🧹 Tear down
 

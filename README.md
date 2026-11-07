@@ -40,8 +40,9 @@ baked into every flavor rather than pulled in via the `docker-outside-of-docker`
 > 📄 **Every flavor below ships a ready-to-use `devcontainer.json` template** under
 > its `<flavor>/.devcontainer/devcontainer.json`. The template wires up the published
 > image with sensible defaults (non-root `developer` user, `Fish` as the default
-> VS Code terminal, persistent `Fish` history & XDG cache volumes, a read-only bind
-> mount of your host `~/.config/git/config`, a tuned `NODE_OPTIONS` heap, and a
+> VS Code terminal, persistent `Fish` history & XDG cache volumes plus shared
+> logins/caches volumes (Claude Code, GitHub CLI, Azure CLI, NuGet, npm),
+> Docker-outside-of-Docker wiring, a tuned `NODE_OPTIONS` heap, and a
 > curated set of VS Code extensions for `.NET`, web, and GitHub workflows). It is
 > intended as a **starting point**: you can freely extend it with any property from the
 > [`devcontainer.json` reference](https://containers.dev/implementors/json_reference/) -
@@ -174,7 +175,8 @@ since they are not packaged in apt. See `Ubuntu/LTS/README.md` for the full brea
 Every flavor installs
 [Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
 (GCM) as a global `.NET` tool. The images configure nothing themselves - add this to
-your own `~/.config/git/config`, which the templates bind-mount read-only:
+your own `~/.config/git/config` (VS Code copies the host git config into the container
+at create time; nothing is bind-mounted):
 
 ```ini
 [credential]
@@ -234,9 +236,9 @@ so the image can be pulled.
 
 Each flavor ships a ready-to-use `devcontainer.json` example with sensible defaults
 (image reference, non-root `developer` user, `Fish` as the default VS Code terminal,
-persistent `Fish` history & XDG cache volumes, a read-only bind mount of your host
-`~/.config/git/config`, a tuned `NODE_OPTIONS` heap, and a curated set of VS Code
-extensions).
+persistent `Fish` history & XDG cache volumes + shared logins/caches volumes, and a
+tuned `NODE_OPTIONS` heap). Git identity is not mounted - VS Code copies the host git
+config into the container at create time.
 Treat it as a **starting point** - extend it with anything from the
 [`devcontainer.json` reference](https://containers.dev/implementors/json_reference/),
 e.g. additional [`mounts`](https://containers.dev/implementors/json_reference/#mounts)
