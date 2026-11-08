@@ -389,6 +389,7 @@ jobs:
           scan-type: image
           image-ref: ${{ steps.final.outputs.final_image }}
           format: table
+          scanners: vuln
           vuln-type: os
           ignore-unfixed: true
           severity: HIGH,CRITICAL
