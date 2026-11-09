@@ -193,7 +193,8 @@ or "DooD") - there is no separate in-container daemon and no `privileged` mode r
 Everything is baked into the image at build time; no Dev Container Feature is used:
 
 - The Docker CLI client is installed from the distribution's own signed repositories
-  (`docker` + `docker-compose` + `docker-buildx` - plus `acl` for the socket ACL - from
+  (`docker` + `docker-compose` + `docker-buildx` - plus `acl` for the socket ACL
+  (with a `chmod` fallback where the engine's proxy socket has no ACL support) - from
   the openSUSE repos).
 - A `docker` group is created and the `developer` user is added to it.
 - Because the host socket's owner is only known at runtime, the helper
@@ -222,11 +223,16 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 > [!NOTE]
 > **macOS hosts:** Docker Desktop / OrbStack expose the socket as `root:root` (GID `0`),
 > which would otherwise require adding the `developer` user to the container's `root`
-> group. The helper instead grants a POSIX `ACL` (`setfacl`) on the socket itself, so
-> nothing else moves and access never widens beyond the socket. Because the ACL lives on
-> the socket inode - and the engine recreates the socket when it restarts - the helper
-> re-applies it on every container start. Rootless Podman sockets land in the same code
-> path.
+> group. The helper grants a POSIX `ACL` (`setfacl`) on the socket itself, so
+> nothing else moves and access never widens beyond the socket. Docker Desktop's
+> socket is a special case: it lands in the container as a bind of a VM-internal
+> proxy socket whose backing filesystem has no ACL support (`setfacl` fails with
+> "Operation not supported"), so there the helper widens the socket mode to `0666`
+> instead - contained to Docker Desktop's per-VM localhost proxy socket, which the
+> developer already exclusively controls. Because the ACL/mode lives on the socket
+> inode - and the engine recreates the socket when it restarts - the helper
+> re-applies it on every container start. Rootless Podman sockets land in the same
+> code path (their filesystems do support ACLs, so the ACL grant applies).
 
 > [!NOTE]
 > **Podman hosts (e.g. Windows 11 + WSL + Podman Desktop forwarding the engine to the
@@ -313,8 +319,9 @@ docker run --rm -it --user developer opensuse-devbox:local
 
 To try Docker-outside-of-Docker manually, bind-mount the host socket and run the init
 helper. On hosts whose socket is owned by GID `0` (macOS Docker Desktop / OrbStack &
-rootless Podman) the ACL grant applies immediately. On rootful Docker hosts the group
-alignment only affects **new login sessions**, hence `newgrp`/`sg`:
+rootless Podman) the ACL grant applies immediately - or, on Docker Desktop (whose
+proxy socket has no ACL support), the `chmod` fallback instead. On rootful Docker
+hosts the group alignment only affects **new login sessions**, hence `newgrp`/`sg`:
 
 ```bash
 docker run --rm -it \
@@ -377,8 +384,9 @@ devcontainer exec --workspace-folder /tmp/doo-test -- docker ps
 The `onCreateCommand` & `postStartCommand` (`sudo /usr/local/bin/docker-socket-init.sh`)
 grant the `developer` user access to the mounted host socket, so `docker` works without
 `sudo` in any `exec`/terminal session. On macOS the host socket is `root:root` (GID
-`0`), so the helper applies a POSIX `ACL` on the socket (see
-[Docker (outside of Docker)](#-docker-outside-of-docker)) - ACLs are honoured
+`0`), so the helper applies a POSIX `ACL` on the socket - or, on Docker Desktop
+(whose proxy socket has no ACL support), a `chmod 0666` fallback instead (see
+[Docker (outside of Docker)](#-docker-outside-of-docker)) - the grant is honoured
 dynamically, so already-running terminals gain access right away. On rootful Docker
 hosts the helper aligns the in-container group to the socket GID, which only applies to
 new login sessions - open a fresh `devcontainer exec` session or run

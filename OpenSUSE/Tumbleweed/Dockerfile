@@ -105,7 +105,8 @@ RUN useradd -m -s /usr/bin/fish "$USERNAME"
 ## Create the docker group for Docker-outside-of-Docker and grant the developer
 ## user access; the runtime helper (see docker-socket-init.sh) re-applies it at
 ## devcontainer create & start, preferring this group for socket GID alignment
-## and using an ACL when the socket is owned by GID 0.
+## and granting a GID-0-socket user an ACL (or, where the engine's proxy socket
+## does not support ACLs, e.g. Docker Desktop on macOS, chmod 0666 instead).
 RUN getent group docker >/dev/null || groupadd docker && \
     usermod -aG docker "$USERNAME"
 
@@ -122,9 +123,10 @@ RUN getent group wheel >/dev/null || groupadd wheel && \
 
 ## Run the Docker-outside-of-Docker socket access helper and allow the developer
 ## user to run it without a password (mirrors the passwd-bootstrap NOPASSWD rule).
-## NOTE: acl is required by the helper for GID-0 sockets (macOS Docker
-## Desktop/OrbStack & rootless Podman), docker-buildx is the CLI's buildx plugin
-## (only the host daemon runs in the container; the daemon is socket-mounted).
+## NOTE: acl is required by the helper for GID-0 sockets on filesystems that
+## support POSIX ACLs (rootless Podman, OrbStack); where the engine's proxy
+## socket has no ACL support (Docker Desktop on macOS) the helper falls back to
+## chmod 0666.
 ## See: Shared/docker-socket-init.sh
 COPY Shared/docker-socket-init.sh /usr/local/bin/docker-socket-init.sh
 RUN chmod 0755 /usr/local/bin/docker-socket-init.sh && \
