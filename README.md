@@ -24,7 +24,7 @@ This is intentional. Baking the toolchain into the build phase gives us:
 - **Single auditable supply chain.** Every install command, package version, signing
   key, and trust root lives in the `Dockerfile` in this repo, is reviewed via PR, and
   is built, vulnerability-scanned, and auto-patched in CI (see
-  [Security scanning & patching](#-security-scanning--patching)). No opaque
+  [🛡️ Security scanning & patching](#-security-scanning--patching)). No opaque
   per-feature install scripts run on the developer's machine.
 - **Version pinning via the image tag**, not via a moving Feature version.
 
@@ -220,7 +220,7 @@ tags built from `main`:
   `beta-<version>-<short-sha>`, `beta-<branch>-<short-sha>`, and `beta-<branch>-latest`.
 - Only the immutable full-SHA tag is published at build time; the stable/beta tags are
   applied **after** the CI security gate passes (see
-  [Security scanning & patching](#-security-scanning--patching)).
+  [🛡️ Security scanning & patching](#-security-scanning--patching)).
 
 See each flavor's README for its specific tags.
 
