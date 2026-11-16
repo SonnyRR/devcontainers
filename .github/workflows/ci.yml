@@ -290,6 +290,10 @@ jobs:
           format: sarif
           output: trivy-full.sarif
           scanners: vuln
+          # .trivyignore.yaml suppresses the CVE-2022-29458 / Tumbleweed tack
+          # false positive (outdated SUSE CVRF fixed version, see the file for
+          # details). Temporary until SUSE updates its data.
+          trivyignores: .trivyignore.yaml
           # Pin the scanner version explicitly rather than riding the action's
           # per-release default; setup-trivy then caches the binary too.
           # TRIVY_VERSION (workflow-level env) is the single source of truth.
@@ -319,6 +323,11 @@ jobs:
           # Fixable-only: unfixed findings are upstream/base-image issues that
           # cannot be remediated here; gate policy excludes them.
           ignore-unfixed: true
+          # Same suppression as the SARIF scan above: without it Copa would
+          # fail-closed trying to update tack to the unattainable
+          # 6.3.20220416-16.1 (ncurses-lineage EVR; Tumbleweed tack is
+          # standalone at 1.11.x, see .trivyignore.yaml).
+          trivyignores: .trivyignore.yaml
           version: ${{ env.TRIVY_VERSION }}
 
       - name: Count fixable OS-package vulnerabilities
@@ -409,6 +418,9 @@ jobs:
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           exit-code: '1'
+          # Keep the gate consistent with the report that drove the patching
+          # (see .trivyignore.yaml for the tack false-positive rationale).
+          trivyignores: .trivyignore.yaml
           version: ${{ env.TRIVY_VERSION }}
 
       - name: Promote release/beta tags to final image

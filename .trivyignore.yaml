@@ -1,0 +1,29 @@
+# Trivy vulnerability suppressions, consumed by every trivy-action step in
+# .github/workflows/ci.yml via the `trivyignores` input.
+#
+# Format: https://trivy.dev/latest/docs/configuration/filtering/#ignore-vulnerabilities-in-yaml
+#
+# CVE-2022-29458 / openSUSE Tumbleweed `tack`:
+# SUSE's CVE page (https://www.suse.com/security/cve/CVE-2022-29458.html)
+# still lists `tack >= 6.3.20220416-16.1` for the Tumbleweed row (patch
+# openSUSE-Tumbleweed-2024-12020). That EVR belongs to the ncurses source
+# package, from which SLE's tack subpackage is built. Tumbleweed has since
+# repackaged tack as a standalone project (currently 1.11.20251210-116.1);
+# rpmvercmp orders 1.11... < 6.3..., so the current, patched package is
+# flagged as vulnerable *and fixable* with an unattainable version, which
+# breaks Copacetic patching (fail-closed) and the release gate.
+#
+# Reported to SUSE (security@suse.de; underlying ncurses fix: SUSE bug
+# 1198627) — remove this entry once SUSE updates the Tumbleweed row and it
+# propagates into the Trivy DB.
+# Trivy maintainer's analysis:
+# https://github.com/aquasecurity/trivy/discussions/11590#discussioncomment-19655115
+#
+# Scope note: the purl matches all openSUSE RPM installs of tack (Tumbleweed
+# and Leap), which is as narrow as Trivy's PURL filtering allows; tack is the
+# only affected package for this CVE.
+vulnerabilities:
+  - id: CVE-2022-29458
+    purls:
+      - "pkg:rpm/opensuse/tack"
+    statement: SUSE data for Tumbleweed lists an ncurses-lineage fixed version (outdated row); standalone tack is unaffected and already at the highest published version.
