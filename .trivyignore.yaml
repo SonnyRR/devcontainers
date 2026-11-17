@@ -3,27 +3,97 @@
 #
 # Format: https://trivy.dev/latest/docs/configuration/filtering/#ignore-vulnerabilities-in-yaml
 #
-# CVE-2022-29458 / openSUSE Tumbleweed `tack`:
-# SUSE's CVE page (https://www.suse.com/security/cve/CVE-2022-29458.html)
-# still lists `tack >= 6.3.20220416-16.1` for the Tumbleweed row (patch
-# openSUSE-Tumbleweed-2024-12020). That EVR belongs to the ncurses source
-# package, from which SLE's tack subpackage is built. Tumbleweed has since
-# repackaged tack as a standalone project (currently 1.11.20251210-116.1);
-# rpmvercmp orders 1.11... < 6.3..., so the current, patched package is
-# flagged as vulnerable *and fixable* with an unattainable version, which
-# breaks Copacetic patching (fail-closed) and the release gate.
+# ---------------------------------------------------------------------------
+# IMPORTANT — `id` must be the SUSE advisory tracking ID, never the CVE.
 #
-# Reported to SUSE (security@suse.de; underlying ncurses fix: SUSE bug
-# 1198627) — remove this entry once SUSE updates the Tumbleweed row and it
-# propagates into the Trivy DB.
-# Trivy maintainer's analysis:
-# https://github.com/aquasecurity/trivy/discussions/11590#discussioncomment-19655115
+# trivy-db stores every SUSE CVRF advisory keyed by its DocumentTracking ID
+# (e.g. "openSUSE-SU-2024:12020-1"; see PutAdvisoryDetail in trivy-db's
+# pkg/vulnsrc/suse-cvrf), and Trivy's SUSE scanner copies that bucket key
+# straight into the reported VulnerabilityID (pkg/detector/ospkg/suse).
+# The CVEs listed inside an advisory are only used for its severity — an
+# `id: CVE-...` entry can therefore NEVER match a SUSE finding. This bit us:
+# the previous `id: CVE-2022-29458` suppression was silently inert because
+# the finding was reported as "openSUSE-SU-2024:12020-1" all along.
 #
-# Scope note: the purl matches all openSUSE RPM installs of tack (Tumbleweed
-# and Leap), which is as narrow as Trivy's PURL filtering allows; tack is the
-# only affected package for this CVE.
+# Context (Nov 2026): trivy-db PR #674 (merged 2026-11-10) regenerated the
+# SUSE CVRF data and added a CSAF source; the rebuilt DB (~2026-11-16)
+# started emitting "… on GA media" advisories whose fixed EVRs are absent
+# from the live Tumbleweed update repositories (verified 404 on 2026-11-17).
+# `zypper up` then has no update candidate while Trivy still reports the
+# package as *fixable*, so Copacetic fails closed ("downloaded package
+# … lower than required …") and the release gate never runs. Each entry
+# below suppresses one such unattainable-fixed-version advisory; remove it
+# once the update repo carries the advertised version or SUSE corrects the
+# data. The purls cover every binary subpackage of the advisory, because
+# which of them an image snapshot contains changes over time.
+# ---------------------------------------------------------------------------
+
 vulnerabilities:
-  - id: CVE-2022-29458
+  # openSUSE-SU-2024:12020-1 — tack / CVE-2022-29458
+  # SUSE's CVE page (https://www.suse.com/security/cve/CVE-2022-29458.html)
+  # still lists `tack >= 6.3.20220416-16.1` for the Tumbleweed row. That EVR
+  # belongs to the ncurses source package, from which SLE's tack subpackage
+  # is built. Tumbleweed has since repackaged tack as a standalone project
+  # (currently 1.11.20251210-116.1); rpmvercmp orders 1.11... < 6.3..., so
+  # the current, patched package is flagged as vulnerable *and fixable*
+  # with an unattainable version. The ncurses binaries from this advisory
+  # are NOT listed: their installed versions (6.5.x) compare above the
+  # 6.3.20220416 fixed EVR and are never flagged.
+  #
+  # Reported to SUSE (security@suse.de; underlying ncurses fix: SUSE bug
+  # 1198627) — remove this entry once SUSE updates the Tumbleweed row and
+  # it propagates into the Trivy DB.
+  # Trivy maintainer's analysis:
+  # https://github.com/aquasecurity/trivy/discussions/11590#discussioncomment-19655115
+  - id: "openSUSE-SU-2024:12020-1"
     purls:
       - "pkg:rpm/opensuse/tack"
     statement: SUSE data for Tumbleweed lists an ncurses-lineage fixed version (outdated row); standalone tack is unaffected and already at the highest published version.
+
+  # openSUSE-SU-2026:12538-1 — git 2.56.1-1.1 (openSUSE-Tumbleweed-2026-12538)
+  # Fixes CVE-2026-105437, CVE-2026-111760, CVE-2026-113408, CVE-2026-114466,
+  # CVE-2026-114467, CVE-2026-114469. The fixed EVR 2.56.1-1.1 is not present
+  # in the live Tumbleweed update repo (git-2.56.1-1.1.x86_64.rpm 404s), so
+  # zypper has no candidate yet every installed subpackage below 2.56.1-1.1
+  # is reported as fixable — unpatchable phantom findings.
+  - id: "openSUSE-SU-2026:12538-1"
+    purls:
+      - "pkg:rpm/opensuse/git"
+      - "pkg:rpm/opensuse/git-arch"
+      - "pkg:rpm/opensuse/git-core"
+      - "pkg:rpm/opensuse/git-credential-libsecret"
+      - "pkg:rpm/opensuse/git-cvs"
+      - "pkg:rpm/opensuse/git-daemon"
+      - "pkg:rpm/opensuse/git-doc"
+      - "pkg:rpm/opensuse/git-email"
+      - "pkg:rpm/opensuse/git-gui"
+      - "pkg:rpm/opensuse/git-p4"
+      - "pkg:rpm/opensuse/git-svn"
+      - "pkg:rpm/opensuse/git-web"
+      - "pkg:rpm/opensuse/gitk"
+      - "pkg:rpm/opensuse/perl-Git"
+    statement: The advertised fixed version 2.56.1-1.1 is absent from the Tumbleweed update repositories, so zypper has no update candidate and the finding is unpatchable (phantom fix); real remediation lands when the repo carries the version.
+
+  # openSUSE-SU-2026:12539-1 — glibc 2.44-4.1 (openSUSE-Tumbleweed-2026-12539)
+  # Fixes CVE-2026-84243. Same phantom as the git advisory above: fixed EVR
+  # 2.44-4.1 absent from the live Tumbleweed update repo
+  # (glibc-2.44-4.1.x86_64.rpm 404s), so zypper has no candidate while
+  # installed subpackages below 2.44-4.1 are reported as fixable.
+  # (Older glibc advisories — 2.44-2.1 / 2026:11787, 2.44-3.1 / 2026:12072 —
+  # do not flag the current image; extend this file if the snapshot drifts
+  # back below their fixed EVRs.)
+  - id: "openSUSE-SU-2026:12539-1"
+    purls:
+      - "pkg:rpm/opensuse/glibc"
+      - "pkg:rpm/opensuse/glibc-devel"
+      - "pkg:rpm/opensuse/glibc-devel-static"
+      - "pkg:rpm/opensuse/glibc-extra"
+      - "pkg:rpm/opensuse/glibc-gconv-modules-extra"
+      - "pkg:rpm/opensuse/glibc-html"
+      - "pkg:rpm/opensuse/glibc-i18ndata"
+      - "pkg:rpm/opensuse/glibc-info"
+      - "pkg:rpm/opensuse/glibc-lang"
+      - "pkg:rpm/opensuse/glibc-locale"
+      - "pkg:rpm/opensuse/glibc-locale-base"
+      - "pkg:rpm/opensuse/glibc-profile"
+    statement: The advertised fixed version 2.44-4.1 is absent from the Tumbleweed update repositories, so zypper has no update candidate and the finding is unpatchable (phantom fix); real remediation lands when the repo carries the version.
