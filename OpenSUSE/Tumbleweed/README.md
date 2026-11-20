@@ -215,6 +215,10 @@ To enable it, bind-mount the host Docker socket into the container. The bundled
 "postStartCommand": "sudo /usr/local/bin/docker-socket-init.sh"
 ```
 
+The default `source` is the **rootful** engine socket. On a host running rootless `Docker`
+(or any non-default engine path), change only that `source` - see
+[Rootful vs rootless Docker](../../README.md#-rootful-vs-rootless-docker).
+
 > [!NOTE]
 > The daemon runs on the **host**, so containers you launch from inside this devcontainer
 > are siblings of the devcontainer itself, not nested children. They share the host's
@@ -279,6 +283,13 @@ or, container-wide for one project, via that project's devcontainer template:
 ```json
 "remoteEnv": { "TESTCONTAINERS_RYUK_DISABLED": "true" }
 ```
+
+> [!NOTE]
+> **Rootless Docker on Linux** is a different case: Ryuk works, but the daemon must be told
+> where the host socket lives so it can bind-mount it into the sibling reaper container.
+> Set `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` (or `docker.socket.override` in
+> `~/.testcontainers.properties`) to the host socket path - see
+> [Rootful vs rootless Docker](../../README.md#-rootful-vs-rootless-docker).
 
 Official documentation (each client reads the same `TESTCONTAINERS_RYUK_DISABLED=true`):
 

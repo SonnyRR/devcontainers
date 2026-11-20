@@ -300,6 +300,10 @@ Copy the template for the flavor you want into your repository at
 > `image` tag (e.g. `docker.io/vkotzsev/ubuntu-lts:26.04`), or pin to an exact commit
 > with the full-SHA tag (e.g. `docker.io/vkotzsev/ubuntu-lts:<40-char-commit-sha>`).
 
+If your `Linux` host (including a Fastmarkets `Ubuntu` development VM) runs rootless
+`Docker`, see [Rootful vs rootless Docker](#-rootful-vs-rootless-docker) before opening a
+template - the bundled socket mount points at the rootful default.
+
 ### 3️⃣ Open the project in the container
 
 - **VS Code:** open the repository and run **Dev Containers: Reopen in Container** from the
@@ -327,10 +331,15 @@ Official docs per client: [.NET - Custom configuration](https://dotnet.testconta
 sibling-container pattern & host overrides),
 [Node.js - Configuration](https://node.testcontainers.org/configuration/) &
 [Supported container runtimes](https://node.testcontainers.org/supported-container-runtimes/),
-[Java - Supported Docker Environments](https://java.testcontainers.org/supported_docker_environment/).
+[Java - Supported Docker Environments](https://java.testcontainers.org/supported_docker_environment/)
+(and [Custom configuration](https://java.testcontainers.org/features/configuration/) for the
+socket/host override keys, plus
+[Patterns for running tests inside a Docker container](https://java.testcontainers.org/supported_docker_environment/continuous_integration/dind_patterns/)).
 The flavor READMEs' [🐳 Docker (outside of Docker)](OpenSUSE/Leap/README.md#-docker-outside-of-docker)
 sections cover the details - socket access and the engine-aware
-`~/.testcontainers.properties` host override for `.NET`.
+`~/.testcontainers.properties` host override for `.NET`. On a rootless **Docker** host the
+reaper also needs its bind source pointed at the host's socket path - see
+[Rootful vs rootless Docker](#-rootful-vs-rootless-docker).
 
 ### 🛠️ Build locally & drive with the devcontainer CLI
 
@@ -360,3 +369,126 @@ The CLI has no `stop`/`down` command - tear down the container with Docker direc
 the full local-build + CLI walkthrough, including the macOS Docker-outside-of-Docker socket
 caveat (see [🐳 Docker (outside of Docker)](OpenSUSE/Leap/README.md#-docker-outside-of-docker)
 in the flavor READMEs).
+
+## 🐳 Rootful vs rootless Docker
+
+All three flavor templates bind-mount a container engine socket and run
+`docker-socket-init.sh` at create and start. The default `source` is the **rootful** engine
+socket at `/var/run/docker.sock`; the container-side `target` is always
+`/var/run/docker.sock` and the init hooks are identical for every engine. Only the
+host-side `source` changes when the engine is rootless or lives at a non-default path.
+
+> [!NOTE]
+> Unlike some upstream templates, our `Ubuntu LTS` template also mounts the socket by
+> default, so this section applies to all three flavors. If a project does not need DooD,
+> drop the socket `mounts` entry and the two `docker-socket-init.sh` hooks.
+
+### How access is granted
+
+`docker-socket-init.sh` decides at runtime from the socket's GID:
+
+| Socket owner | Typical engines | Access granted |
+| --- | --- | --- |
+| GID `0` | Rootless Docker / Podman, Docker Desktop / OrbStack on macOS | A POSIX ACL on the socket (`setfacl`), with a `chmod 0666` fallback where the proxy filesystem has no ACL support. Immediate, no re-login. |
+| non-zero GID | Rootful Docker Engine on Linux (e.g. a host `docker` group) | An in-container group aligned to that GID, with `developer` added to it. New login sessions only (`newgrp`/`sg` or a fresh terminal). |
+
+The helper also detects the engine flavor through the daemon API and writes
+`host.override=host.docker.internal` (Docker) or `host.override=host.containers.internal`
+(Podman) into `~/.testcontainers.properties` when that name resolves inside the container.
+A bare Linux engine - rootful or rootless - advertises no such alias, so nothing is written
+there; see [Ryuk and the socket override](#-ryuk-and-the-socket-override) below.
+
+### 🔌 Finding a rootless socket on the host
+
+Run these on the **Linux host that runs the engine**. With `VS Code Remote SSH`, that is the
+VM, not your workstation.
+
+```sh
+env | grep -E '^DOCKER_(HOST|CONTEXT)=' || true
+docker context ls
+docker context inspect "$(docker context show)" --format '{{.Endpoints.docker.Host}}'
+docker info --format '{{json .SecurityOptions}}'
+```
+
+In `Fish`, use
+`docker context inspect (docker context show) --format '{{.Endpoints.docker.Host}}'` for the
+context lookup. `name=rootless` in the security options plus a local endpoint such as
+`unix:///run/user/1010/docker.sock` confirms rootless Docker. If `DOCKER_HOST` is set and
+`DOCKER_CONTEXT` is not, use the endpoint from `DOCKER_HOST` instead. Strip `unix://` and
+verify it is a socket:
+
+```sh
+test -S /run/user/1010/docker.sock && ls -l /run/user/1010/docker.sock
+```
+
+Then change **only the source** of the socket mount in your project's
+`.devcontainer/devcontainer.json`:
+
+```jsonc
+"source=/run/user/1010/docker.sock,target=/var/run/docker.sock,type=bind"
+```
+
+> [!IMPORTANT]
+> Keep the target at `/var/run/docker.sock` and leave the `onCreateCommand` /
+> `postStartCommand` socket-init hooks unchanged - they are deliberately engine-agnostic.
+> Don't commit a machine-specific socket path; an `ssh://` or `tcp://` endpoint is not a
+> local socket path.
+
+Rebuild with **Dev Containers: Rebuild and Reopen in Container**, then run `docker ps` as
+`developer` inside the container to verify daemon access.
+
+### 🧪 Ryuk and the socket override
+
+Ryuk (the resource reaper) is a **sibling container**, so the daemon resolves its bind
+sources on the **Docker host**, not inside the devcontainer. With a rootless socket mounted
+from `/run/user/<uid>/docker.sock`, the test client can still reach the daemon, but Ryuk's
+default bind source `/var/run/docker.sock` does not exist on the host and startup fails
+with `bind source path does not exist: /var/run/docker.sock`.
+
+Set `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` to the same host path as the mount source
+(without `unix://`). Every template ships a commented-out stub in `containerEnv`; uncomment
+and edit it locally, or set it for a single run:
+
+```sh
+env TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/1010/docker.sock dotnet test
+```
+
+This sets the socket path used by Ryuk **and other helper containers that perform Docker
+actions** (e.g. Docker Compose) - **not** the test client's endpoint, which `DOCKER_HOST`
+controls. Leave `DOCKER_HOST` alone if the client already connects. The default is
+`/var/run/docker.sock`. For `.NET`, the equivalent properties-file key is
+`docker.socket.override` in `~/.testcontainers.properties`, alongside the `host.override`
+entry the socket helper manages. The default rootful socket needs no override.
+
+Reaching sibling containers' published ports is a related but separate concern: the helper
+writes `host.override` only when the engine provides a resolvable alias, so on a bare Linux
+engine a `.NET` project may also need `TESTCONTAINERS_HOST_OVERRIDE` or a
+`"runArgs": ["--add-host=host.docker.internal:host-gateway"]` entry where the engine
+supports it.
+
+> [!CAUTION]
+> Keep Ryuk enabled - it is the crash safety net for interrupted test runs on shared
+> devboxes. If tests need to reach sibling services on `localhost`, that is a separate
+> concern: `"runArgs": ["--network=host"]` is a project-level option where the engine
+> supports it, and is not a fix for the Ryuk socket mount.
+
+### 🔐 Workspace permissions
+
+The workspace bind mount is independent of the engine socket. With rootless Docker, daemon
+files (including build outputs written through bind mounts) may appear owned by a UID that
+does not match the container's `developer`. If `docker ps` works but builds cannot write to
+`bin`, `obj`, or another generated directory, check the mapping **inside the container** as
+`developer`:
+
+```sh
+id -u | awk 'NR == 1 { uid = $1 } FNR != NR && uid >= $1 && uid < $1 + $3 { print $2 + uid - $1 }' - /proc/self/uid_map
+```
+
+Follow your project's guidance for granting that mapped UID access with host ACLs, scoped
+to the affected build paths and any parent directories where the build needs to create
+them. If Git hook installation needs to update `.git/config` or change executable bits,
+follow the project's hook setup as the checkout owner.
+
+> [!CAUTION]
+> Don't recursively change ownership, grant workspace ACLs on `.git`, or run builds as root
+> to work around build permission errors.

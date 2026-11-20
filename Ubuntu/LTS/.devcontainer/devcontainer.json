@@ -12,6 +12,9 @@
     "source=dev-ubuntu-azure-config,target=/home/developer/.azure,type=volume",
     "source=dev-nuget-packages,target=/home/developer/.nuget/packages,type=volume",
     "source=dev-npm-cache,target=/home/developer/.npm,type=volume",
+    // Default: rootful Docker at /var/run/docker.sock. For rootless Docker on Linux,
+    // change only this source to the host's socket path (e.g. /run/user/1010/docker.sock).
+    // Keep the target and the onCreateCommand/postStartCommand socket-init hooks unchanged.
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
   "init": true,
@@ -21,6 +24,10 @@
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
   },
   "containerEnv": {
+    // Rootless Docker on Linux: Ryuk & other Testcontainers helper containers need the
+    // host-side socket path (without unix://). Uncomment & match the mount source above
+    // locally; the default rootful socket needs no override.
+    // "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE": "/run/user/1010/docker.sock",
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
   "customizations": {
